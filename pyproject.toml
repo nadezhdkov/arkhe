@@ -44,9 +44,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rickmviana/nestifypy"
-Repository = "https://github.com/rickmviana/nestifypy"
-"Bug Tracker" = "https://github.com/rickmviana/nestifypy/issues"
+Homepage = "https://github.com/nadezhdkov/nestifypy"
+Repository = "https://github.com/nadezhdkov/nestifypy"
+"Bug Tracker" = "https://github.com/nadezhdkov/nestifypy/issues"
 
 [project.scripts]
 nestifypy = "nestifypy.cli:main"

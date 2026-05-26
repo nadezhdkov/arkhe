@@ -1,12 +1,10 @@
 project:
-  name: "Nestifypy"
+  name: "nestifypy"
   version: "0.1.0"
   description: "Modern utility and game framework for Python"
 
 python:
-  version: "3.11"
-  dependencies:
-    - pygame==2.6.1
+  version: "3.10"
 
 build:
   backend: "uv"
