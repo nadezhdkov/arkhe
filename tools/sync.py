@@ -23,7 +23,7 @@ CONFIG_FILE = "project.yml"
 def main() -> None:
     cfg_path = Path(CONFIG_FILE)
     if not cfg_path.exists():
-        print(f"❌  {CONFIG_FILE} not found. Run: pynest init")
+        print(f"❌  {CONFIG_FILE} not found. Run: nestify init")
         sys.exit(1)
 
     with open(cfg_path, "r") as f:

@@ -1,16 +1,16 @@
 """
-Pynest Quickstart Example
+Nestify Quickstart Example
 """
 
-from pynest.core import Logger, Constants
-from pynest.decorators import benchmark, cache, retry, event, emit
-from pynest.types import Vector2, Color, Rect
-from pynest.utils import Strings, Random, Math, Time, Validator
-from pynest.console import Console
-from pynest.flow import Flow
+from nestify.core import Logger, Constants
+from nestify.decorators import benchmark, cache, retry, event, emit
+from nestify.types import Vector2, Color, Rect
+from nestify.utils import Strings, Random, Math, Time, Validator
+from nestify.console import Console
+from nestify.flow import Flow
 
 # Logger
-Logger.info("Pynest starting up!")
+Logger.info("Nestify starting up!")
 Logger.warn("Watch out!")
 Logger.success("Ready!")
 
@@ -44,7 +44,7 @@ rect = Rect(0, 0, 100, 100)
 Logger.debug(f"Contains (50,50): {rect.contains(50, 50)}")
 
 # Utils
-Logger.info(Strings.slugify("Hello World! This is Pynest."))
+Logger.info(Strings.slugify("Hello World! This is Nestify."))
 Logger.info(f"UUID: {Random.uuid()}")
 Logger.info(f"Clamped: {Math.clamp(150, 0, 100)}")
 Logger.info(f"Now: {Time.format()}")
@@ -64,7 +64,7 @@ Console.table(
         {"module": "pyunix",     "status": "planned", "phase": 2},
         {"module": "ai",         "status": "planned", "phase": 5},
     ],
-    title="Pynest Modules",
+    title="Nestify Modules",
 )
 Console.rule()
 

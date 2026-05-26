@@ -1,13 +1,13 @@
-# System Utilities (`pynest.os`)
+# System Utilities (`nestify.os`)
 
-The `pynest.os` module provides clean, cross-platform wrappers for common operating system tasks, splitting functionality into logical submodules: `Files`, `Dirs`, `Paths`, `System`, and `Process`.
+The `nestify.os` module provides clean, cross-platform wrappers for common operating system tasks, splitting functionality into logical submodules: `Files`, `Dirs`, `Paths`, `System`, and `Process`.
 
 ## 1. Filesystem (`Files` and `Dirs`)
 
 Perform common file manipulations safely and without boilerplate.
 
 ```python
-from pynest.os import Files, Dirs
+from nestify.os import Files, Dirs
 
 # Create a file and write content (creates parent directories automatically!)
 Files.create("output/data.txt", "Hello World")
@@ -32,7 +32,7 @@ Dirs.create("cache/tmp/images")
 Resolve common directories easily.
 
 ```python
-from pynest.os import Paths
+from nestify.os import Paths
 
 print(Paths.cwd())    # Current working directory
 print(Paths.home())   # User's home directory
@@ -43,11 +43,11 @@ print(Paths.home())   # User's home directory
 Run shell commands synchronously or asynchronously without messing with `subprocess` directly.
 
 ```python
-from pynest.os import Process
+from nestify.os import Process
 
 # Run a command and capture output
-result = Process.run("echo Hello Pynest")
-print(result) # "Hello Pynest"
+result = Process.run("echo Hello Nestify")
+print(result) # "Hello Nestify"
 
 # Run a command in the background (fire and forget)
 Process.spawn("python script.py")
@@ -58,7 +58,7 @@ Process.spawn("python script.py")
 Query hardware and OS info.
 
 ```python
-from pynest.os import System
+from nestify.os import System
 
 print(System.os_name()) # "Linux", "Windows", "Darwin"
 print(System.is_linux()) # True/False

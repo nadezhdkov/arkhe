@@ -1,11 +1,11 @@
 # JSON Utilities
 
-`pynest.json` is a simple wrapper for JSON processing, providing dot-notation access to dictionaries (similar to `pynest.yaml`) and robust file I/O operations.
+`nestify.json` is a simple wrapper for JSON processing, providing dot-notation access to dictionaries (similar to `nestify.yaml`) and robust file I/O operations.
 
 ## 1. Quick Start
 
 ```python
-from pynest.json import Json
+from nestify.json import Json
 
 # Read a JSON file
 data = Json.load("data/users.json")
@@ -16,10 +16,10 @@ Json.save("data/output.json", {"status": "success", "code": 200})
 
 ## 2. DotDict Usage
 
-Pynest uses a `DotDict` wrapper allowing you to access nested dictionary keys as object attributes.
+Nestify uses a `DotDict` wrapper allowing you to access nested dictionary keys as object attributes.
 
 ```python
-from pynest.json import DotDict
+from nestify.json import DotDict
 
 user_data = {
     "user": {
@@ -45,7 +45,7 @@ If you need to serialize Python objects (e.g. Dataclasses, Enum) to JSON, use th
 
 ```python
 from dataclasses import dataclass
-from pynest.json import Json
+from nestify.json import Json
 
 @dataclass
 class Config:

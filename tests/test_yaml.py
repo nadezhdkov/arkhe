@@ -1,7 +1,7 @@
 """
 tests/test_yaml.py
 ------------------
-Basic test suite for Pynest YAML module.
+Basic test suite for Nestify YAML module.
 """
 
 import pytest
@@ -11,9 +11,9 @@ import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from pynest import yaml
-from pynest.yaml import YamlPathError
-from pynest.yaml.runtime import YamlRuntime
+from nestify import yaml
+from nestify.yaml import YamlPathError
+from nestify.yaml.runtime import YamlRuntime
 
 @pytest.fixture(autouse=True)
 def reset_yaml_runtime():
@@ -31,7 +31,7 @@ def temp_yaml_files(tmp_path):
     db_file.write_text("database:\n  host: localhost\n  port: 5432")
     
     app_file = tmp_path / "app.yml"
-    app_file.write_text("app:\n  name: pynest\n  debug: true")
+    app_file.write_text("app:\n  name: nestify\n  debug: true")
     
     # We don't manually scan! We let auto-bootstrap do it by setting CWD to tmp_path
     import os
@@ -64,7 +64,7 @@ def test_explicit_api(temp_yaml_files):
 def test_module_getattr(temp_yaml_files):
     # Test yaml.database.host syntax
     assert yaml.database.host == "localhost"
-    assert yaml.app.name == "pynest"
+    assert yaml.app.name == "nestify"
 
 def test_module_getitem(temp_yaml_files):
     # Test yaml["database.host"] syntax
@@ -82,13 +82,13 @@ def test_persistent_metadata(temp_yaml_files):
     # Trigger bootstrap
     assert yaml.get("database.port") == 5432
     
-    pynest_dir = temp_yaml_files / ".pynest"
-    assert pynest_dir.exists()
-    assert (pynest_dir / "yaml_index.json").exists()
-    assert (pynest_dir / "yaml_metadata.json").exists()
+    nestify_dir = temp_yaml_files / ".nestify"
+    assert nestify_dir.exists()
+    assert (nestify_dir / "yaml_index.json").exists()
+    assert (nestify_dir / "yaml_metadata.json").exists()
     
     # Check content of metadata
-    with open(pynest_dir / "yaml_metadata.json") as f:
+    with open(nestify_dir / "yaml_metadata.json") as f:
         meta = json.load(f)
     assert str((temp_yaml_files / "database.yml").resolve()) in meta
 

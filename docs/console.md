@@ -1,10 +1,10 @@
-# Console Tools (`pynest.console`)
+# Console Tools (`nestify.console`)
 
 The `Console` module provides modern, rich terminal output utilities including colored printing, structured tables, progress bars, interactive input helpers, and animated spinners.
 
 ## Import
 ```python
-from pynest.console import Console
+from nestify.console import Console
 ```
 
 ## 1. Colored Printing

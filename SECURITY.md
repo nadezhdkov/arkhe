@@ -12,7 +12,7 @@ currently being supported with security updates.
 
 ## Reporting a Vulnerability
 
-We take the security of Pynest very seriously. If you discover a security vulnerability within this project, please follow these steps to report it:
+We take the security of Nestify very seriously. If you discover a security vulnerability within this project, please follow these steps to report it:
 
 1. **Do not open a public issue.** This could expose the vulnerability to malicious actors before a patch can be released.
 2. Email the core maintainers directly or use the GitHub Security Advisory feature if enabled on the repository.
@@ -29,4 +29,4 @@ We take the security of Pynest very seriously. If you discover a security vulner
 - If confirmed, we will develop a patch and release it as quickly as possible.
 - A public security advisory will be published once the patch is available, giving appropriate credit to the reporter (unless they prefer to remain anonymous).
 
-Thank you for helping keep Pynest secure!
+Thank you for helping keep Nestify secure!

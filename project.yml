@@ -1,5 +1,5 @@
 project:
-  name: "Pynest"
+  name: "Nestify"
   version: "0.1.0"
   description: "Modern utility and game framework for Python"
 
@@ -12,7 +12,7 @@ build:
   backend: "uv"
 
 docker:
-  image: "pynest:latest"
+  image: "nestify:latest"
 
 authors:
   - name: "rickmviana"

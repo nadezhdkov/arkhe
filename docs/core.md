@@ -1,4 +1,4 @@
-# Core Systems (`pynest.core`)
+# Core Systems (`nestify.core`)
 
 The `core` module provides the backbone for application architecture, including a standardized Logger, a central Registry for state management, and a dynamic Plugin system.
 
@@ -7,7 +7,7 @@ The `core` module provides the backbone for application architecture, including 
 A globally accessible, timestamped, and colored logger.
 
 ```python
-from pynest.core import Logger, LogLevel
+from nestify.core import Logger, LogLevel
 
 # Setup
 Logger.set_level(LogLevel.DEBUG)
@@ -30,7 +30,7 @@ Logger.trace()
 A generic, namespaced registry to hold commands, configurations, singletons, or assets globally.
 
 ```python
-from pynest.core import Registry
+from nestify.core import Registry
 
 # Register an object in a category namespace
 Registry.register("services", "database", db_connection_instance)
@@ -51,7 +51,7 @@ all_services = Registry.all("services")
 A decorator-based system for building extensible applications.
 
 ```python
-from pynest.core import Plugin
+from nestify.core import Plugin
 
 # Define a plugin class
 @Plugin.info(name="auth_plugin", version="1.0.0", description="OAuth support")

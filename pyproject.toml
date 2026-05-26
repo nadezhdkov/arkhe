@@ -3,7 +3,7 @@ requires = ["setuptools>=69.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pynest"
+name = "nestify"
 dynamic = ["version"]
 description = "Modern utility and game framework for Python"
 readme = "README.md"
@@ -44,27 +44,27 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rickmviana/pynest"
-Repository = "https://github.com/rickmviana/pynest"
-"Bug Tracker" = "https://github.com/rickmviana/pynest/issues"
+Homepage = "https://github.com/rickmviana/nestify"
+Repository = "https://github.com/rickmviana/nestify"
+"Bug Tracker" = "https://github.com/rickmviana/nestify/issues"
 
 [project.scripts]
-pynest = "pynest.cli:main"
+nestify = "nestify.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 zip-safe = false
 
 [tool.setuptools.dynamic]
-version = {attr = "pynest.version.__version__"}
+version = {attr = "nestify.version.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["pynest*"]
+include = ["nestify*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-pynest = ["py.typed"]
+nestify = ["py.typed"]
 
 [tool.ruff]
 line-length = 88
@@ -81,7 +81,7 @@ strict = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=pynest --cov-report=term-missing"
+addopts = "-v --cov=nestify --cov-report=term-missing"
 
 [tool.coverage.run]
 source = ["src"]

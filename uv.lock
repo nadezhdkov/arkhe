@@ -895,7 +895,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pynest"
+name = "nestify"
 source = { editable = "." }
 dependencies = [
     { name = "pygame" },

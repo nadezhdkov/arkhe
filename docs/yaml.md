@@ -1,8 +1,8 @@
 # YAML Intelligent Registry
 
-`pynest.yaml` is not just a parser; it is a **Runtime Configuration Engine**. It transforms chaotic, scattered YAML files into a strongly-typed, auto-reloading, `O(1)` virtual registry.
+`nestify.yaml` is not just a parser; it is a **Runtime Configuration Engine**. It transforms chaotic, scattered YAML files into a strongly-typed, auto-reloading, `O(1)` virtual registry.
 
-By leveraging an intelligent caching layer, Pynest ensures that parsing YAML only happens when files actually change on disk, keeping your application blazing fast.
+By leveraging an intelligent caching layer, Nestify ensures that parsing YAML only happens when files actually change on disk, keeping your application blazing fast.
 
 ---
 
@@ -23,17 +23,17 @@ database:
 ### Option A: String Path Resolution
 The `yaml.get()` method uses deep dot-notation to traverse files and nested dictionaries seamlessly.
 ```python
-from pynest import yaml
+from nestify import yaml
 
-# Scans project, caches in .pynest/, and retrieves the value
+# Scans project, caches in .nestify/, and retrieves the value
 host = yaml.get("database.host")
 max_pool = yaml.get("database.pool.max_size")
 ```
 
 ### Option B: Pythonic Attribute Access (Magic Methods)
-Pynest uses module-level `__getattr__` to let you interact with your configuration as if it were a Python object.
+Nestify uses module-level `__getattr__` to let you interact with your configuration as if it were a Python object.
 ```python
-from pynest import yaml
+from nestify import yaml
 
 # Same as above, but with pure Python syntax!
 host = yaml.database.host
@@ -46,29 +46,29 @@ print(pool_cfg.min_size)
 
 ---
 
-## 2. The Persistence Layer (`.pynest/`)
+## 2. The Persistence Layer (`.nestify/`)
 
-Why is `pynest.yaml` so fast? Because it acts like a database index.
+Why is `nestify.yaml` so fast? Because it acts like a database index.
 
-When Pynest scans your directories, it generates two files inside the hidden `.pynest/` folder:
+When Nestify scans your directories, it generates two files inside the hidden `.nestify/` folder:
 1. `yaml_index.json`: A flat dictionary mapping every single dot-path to the absolute path of the YAML file that owns it.
 2. `yaml_metadata.json`: A state-tracker recording the last modified timestamps (`st_mtime`) of every file.
 
 **The result?** 
 - Lookup times are **O(1)**.
-- If you restart your application, Pynest loads the cache in milliseconds.
-- If a single YAML file is modified, Pynest *only* re-parses that specific file, ignoring the rest of your project.
+- If you restart your application, Nestify loads the cache in milliseconds.
+- If a single YAML file is modified, Nestify *only* re-parses that specific file, ignoring the rest of your project.
 
-*(Note: You should add `.pynest/` to your `.gitignore`)*
+*(Note: You should add `.nestify/` to your `.gitignore`)*
 
 ---
 
 ## 3. Hot-Reloading Configurations (Watchers)
 
-For long-running processes (like a web server or a game engine), restarting the app to tweak a configuration value is painful. Pynest solves this with a built-in background watcher.
+For long-running processes (like a web server or a game engine), restarting the app to tweak a configuration value is painful. Nestify solves this with a built-in background watcher.
 
 ```python
-from pynest import yaml
+from nestify import yaml
 
 # Start a lightweight background thread
 yaml.watch(True)
@@ -88,7 +88,7 @@ def game_loop():
 While the auto-bootstrap is great for rapid development, professional applications usually require explicit initialization (e.g., during a server's boot phase).
 
 ```python
-from pynest import yaml
+from nestify import yaml
 from pathlib import Path
 
 # Explicitly scan only a specific directory (prevents scanning node_modules or large folders)

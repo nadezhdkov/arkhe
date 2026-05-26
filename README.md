@@ -1,10 +1,10 @@
 <div align="center">
-  <h1>🪺 Pynest Framework</h1>
+  <h1>🪺 Nestify Framework</h1>
   <p><strong>A Modern, Declarative Utility and Game Framework for Python 3.10+</strong></p>
 
   <p>
-    <a href="https://github.com/pynest/pynest/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status"></a>
-    <a href="https://pypi.org/project/pynest/"><img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white" alt="Python Version"></a>
+    <a href="https://github.com/nestify/nestify/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status"></a>
+    <a href="https://pypi.org/project/nestify/"><img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white" alt="Python Version"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
     <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
     <a href="SECURITY.md"><img src="https://img.shields.io/badge/security-policy-lightgrey?style=flat-square" alt="Security"></a>
@@ -13,13 +13,13 @@
 
 ---
 
-**Pynest** is a production-ready, modular utility and game framework for Python. It provides a highly declarative, decorator-driven approach to application development, focusing on performance, developer ergonomics, and strict type safety.
+**Nestify** is a production-ready, modular utility and game framework for Python. It provides a highly declarative, decorator-driven approach to application development, focusing on performance, developer ergonomics, and strict type safety.
 
-Whether you are building complex CLI tools, managing intelligent configuration registries, or developing 2D physics-based games, Pynest provides a robust foundation.
+Whether you are building complex CLI tools, managing intelligent configuration registries, or developing 2D physics-based games, Nestify provides a robust foundation.
 
 ## 🚀 Key Features
 
-### 🎮 Pyunix Game Engine (`pynest.pyunix`)
+### 🎮 Pyunix Game Engine (`nestify.pyunix`)
 A fully declarative, decorator-driven engine built on top of `pygame`. 
 - **No Boilerplate:** Build games using `@Game`, `@Sprite`, and `@Scene` without writing messy `while True` game loops.
 - **ECS-Friendly Architecture:** Build isolated entities and manage them easily via `SpriteGroup`.
@@ -28,25 +28,25 @@ A fully declarative, decorator-driven engine built on top of `pygame`.
 - **Advanced Systems:** Built-in `Camera` with smooth-follow and screenshake, flexible `Audio` management, and robust `Timer` logic tied to game Delta-Time.
 
 ### 🛠️ Core Utilities
-- **Intelligent YAML Registry (`pynest.yaml`)**: An advanced configuration engine that automatically scans, caches, and indexes your YAML files, providing instant `O(1)` access via dot-notation (e.g., `yaml.get("server.port")`).
-- **Declarative Environments (`pynest.env`)**: Bind `.env` variables directly to class properties using the `EnvProperty` descriptor, or inject them into functions using `@Env.inject`.
-- **System Tools (`pynest.os`)**: Cross-platform, memory-efficient generators for file scanning, subprocess management, and directory operations.
-- **CLI Ecosystem (`pynest cli`)**: Scaffolding tools to generate professional-grade projects instantly with built-in support for `ruff`, `pytest`, and `mypy`.
+- **Intelligent YAML Registry (`nestify.yaml`)**: An advanced configuration engine that automatically scans, caches, and indexes your YAML files, providing instant `O(1)` access via dot-notation (e.g., `yaml.get("server.port")`).
+- **Declarative Environments (`nestify.env`)**: Bind `.env` variables directly to class properties using the `EnvProperty` descriptor, or inject them into functions using `@Env.inject`.
+- **System Tools (`nestify.os`)**: Cross-platform, memory-efficient generators for file scanning, subprocess management, and directory operations.
+- **CLI Ecosystem (`nestify cli`)**: Scaffolding tools to generate professional-grade projects instantly with built-in support for `ruff`, `pytest`, and `mypy`.
 
 ---
 
 ## 📦 Installation
 
-Pynest requires **Python 3.10 or higher**.
+Nestify requires **Python 3.10 or higher**.
 
 To install the core utility framework (without Pygame dependencies):
 ```bash
-pip install pynest
+pip install nestify
 ```
 
-To install Pynest with **full Pyunix Game Framework** capabilities:
+To install Nestify with **full Pyunix Game Framework** capabilities:
 ```bash
-pip install "pynest[game]"
+pip install "nestify[game]"
 ```
 
 ---
@@ -56,15 +56,15 @@ pip install "pynest[game]"
 ### 1. Initialize a Project
 Use the CLI to scaffold a new project complete with a professional `pyproject.toml` and directory structure.
 ```bash
-pynest init --name my_app
+nestify init --name my_app
 ```
 
 ### 2. Building a Game (Pyunix)
 Building a game loop is as simple as decorating a class. 
 
 ```python
-from pynest.pyunix import Game, Entity, Rigidbody, BoxCollider, BodyType
-from pynest.types import Vector2, Color
+from nestify.pyunix import Game, Entity, Rigidbody, BoxCollider, BodyType
+from nestify.types import Vector2, Color
 
 # 1. Define your Game
 @Game(title="My Awesome Game", size=(800, 600), fps=60)
@@ -112,8 +112,8 @@ if __name__ == "__main__":
 Access parsed configurations instantly across your entire project.
 
 ```python
-from pynest import yaml
-from pynest.env import Env
+from nestify import yaml
+from nestify.env import Env
 
 # Automatically loads .env file
 Env.load()
@@ -144,7 +144,7 @@ Detailed guides and API references for each module can be found in the `docs/` d
 
 ## 🤝 Contributing
 
-Pynest is built with modern Python tools (`uv`, `ruff`, `pytest`). We welcome contributions!
+Nestify is built with modern Python tools (`uv`, `ruff`, `pytest`). We welcome contributions!
 
 1. Clone the repository.
 2. Install development dependencies using `uv` or `pip`:

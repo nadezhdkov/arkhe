@@ -1,10 +1,10 @@
-# Decorators (`pynest.decorators`)
+# Decorators (`nestify.decorators`)
 
-Pynest includes a comprehensive suite of utility decorators to add caching, validation, error handling, and event structures to your functions cleanly. All decorators preserve function metadata using `functools.wraps`.
+Nestify includes a comprehensive suite of utility decorators to add caching, validation, error handling, and event structures to your functions cleanly. All decorators preserve function metadata using `functools.wraps`.
 
 ## Import
 ```python
-from pynest.decorators import *
+from nestify.decorators import *
 ```
 
 ## Execution & Performance

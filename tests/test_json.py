@@ -1,7 +1,7 @@
 """
 tests/test_json.py
 ------------------
-Basic test suite for Pynest JSON module.
+Basic test suite for Nestify JSON module.
 """
 
 import pytest
@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from pynest.json import Json, JsonError, JsonParseError, JsonValidationError
+from nestify.json import Json, JsonError, JsonParseError, JsonValidationError
 
 def test_json_parse_and_stringify():
     data = {"key": "value", "num": 42}
