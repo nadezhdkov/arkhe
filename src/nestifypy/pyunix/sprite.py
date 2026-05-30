@@ -325,7 +325,7 @@ class Entity:
             return None
         if self.image:
             r = self.image.get_rect()
-            r.topleft = (int(self.transform.position.x), int(self.transform.position.y))
+            r.center = (int(self.transform.position.x), int(self.transform.position.y))
             return r
         return pygame.Rect(int(self.transform.position.x), int(self.transform.position.y), 0, 0)
 

@@ -22,7 +22,7 @@ Quick start::
 from nestifypy.ignite.core.application import Application
 from nestifypy.ignite.core.context import ApplicationContext
 
-__version__ = "0.2.1"
+__version__ = "0.1.0"
 __author__ = "Nestifypy Contributors"
 
 __all__ = ["Application", "ApplicationContext"]

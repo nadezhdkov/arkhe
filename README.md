@@ -157,12 +157,26 @@ if __name__ == "__main__":
 ## ✨ Features
 
 - **Komodo Metaprogramming:** `@komodo.data`, `@komodo.builder`, `@komodo.singleton`, and `@contract` constraints for clean, boilerplate-free data structures.
-- **Ignite Framework:** Spring Boot-inspired IoC container, Dependency Injection, and Lifecycle hooks (`@PostConstruct`).
+- **Ignite Framework:** Spring Boot-inspired IoC container, Dependency Injection, Lifecycle hooks (`@PostConstruct`), Web integration (FastAPI), Scheduled Cron tasks (`@Scheduled`), EventBus, and TestContainers.
 - **No Boilerplate Game Loops:** Build Pyunix games using `@Game`, `@Entity`, and `@Scene`.
 - **Built-in 2D Physics:** High-performance Rigidbody physics, spatial hashing, `BoxCollider` / `CircleCollider`, and collision hooks.
 - **Intelligent YAML Registry:** Caches and indexes YAML files for `O(1)` dot-notation access.
 - **Declarative Environments:** Bind `.env` variables directly to class properties.
 - **CLI Scaffolding:** Generate robust projects with built-in support for `ruff`, `pytest`, and `mypy`.
+
+## 📝 Changelog
+
+### v0.2.2
+- **Pyunix Fixes**: Fixed physics bounding box discrepancies (`rect.topleft` vs `rect.center` alignment) ensuring pixel-perfect `BoxCollider` interactions in 2D space.
+- **FlappyBird Demo**: Refactored `examples/flappybird.py` to fully utilize Pyunix's modern Physics engine, Animator, and Trigger zones. Fixed ghost pipe collider issues on reset.
+- **Ignite Documentation**: Published comprehensive documentation for the Ignite framework (`ignite.md`) covering DI, FastAPI, EventBus, Scheduled Tasks, and TestContainers.
+
+### v0.2.1
+- **Ignite Core Integration**: Rebranded and refactored the legacy `bolt` container into the advanced `ignite` application framework.
+- **EventBus**: Added a powerful Publish/Subscribe event bus within Ignite.
+- **Web module**: Seamless integration with FastAPI for RESTful APIs.
+- **Cron Jobs**: Introduced `@Scheduled` decorators utilizing `croniter`.
+- **Testing**: Added `TestContainer` for robust dependency-isolated integration testing.
 
 ## 📚 Documentation
 

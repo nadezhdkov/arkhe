@@ -256,11 +256,15 @@ class _SceneAPI:
         self._manager.destroy_instance(name)
 
     # Per-frame forwarding
-    def update(self, dt: float) -> None:
-        self._manager.update(dt)
+    def update(self, arg: Any) -> Any:
+        if callable(arg):
+            return self._manager.update_hook(arg)
+        self._manager.update(arg)
 
-    def draw(self, surface: Any) -> None:
-        self._manager.draw(surface)
+    def draw(self, arg: Any) -> Any:
+        if callable(arg):
+            return self._manager.draw_hook(arg)
+        self._manager.draw(arg)
 
     # Properties
     @property
