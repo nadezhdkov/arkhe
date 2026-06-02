@@ -7,7 +7,9 @@ Quick start::
 
     from nestifypy.collections import (
         ArrayList, LinkedList, Stack, Queue,
-        OrderedSet, HashMap, Stream, Optional, Result,
+        OrderedSet, HashMap, BiMap, MultiMap,
+        PriorityQueue, CircularBuffer,
+        Stream, Optional, Result,
     )
 
     # Fluent pipeline
@@ -24,14 +26,36 @@ Quick start::
     # Explicit error handling
     parsed = Result.of(lambda: int(user_input)).get_or(0)
 
+    # Bidirectional map
+    roles = BiMap().put("ADMIN", 1).put("MOD", 2)
+    roles.get_key(1)   # "ADMIN"
+
+    # Multi-value map
+    params = MultiMap().put("color", "red").put("color", "blue")
+    params.get("color")  # ["red", "blue"]
+
+    # Priority queue
+    tasks = PriorityQueue()
+    tasks.add("Low", priority=10).add("High", priority=1)
+    tasks.poll()  # "High"
+
+    # Circular buffer
+    logs = CircularBuffer(3)
+    logs.add("A").add("B").add("C").add("D")
+    logs.to_list()  # ["B", "C", "D"]
+
 Collections
 -----------
-- :class:`ArrayList`   — dynamic array with functional API
-- :class:`LinkedList`  — doubly-linked list (deque-backed)
-- :class:`Stack`       — LIFO stack
-- :class:`Queue`       — FIFO queue
-- :class:`OrderedSet`  — insertion-ordered unique elements
-- :class:`HashMap`     — fluent dict wrapper
+- :class:`ArrayList`       — dynamic array with functional API
+- :class:`LinkedList`      — doubly-linked list (deque-backed)
+- :class:`Stack`           — LIFO stack
+- :class:`Queue`           — FIFO queue
+- :class:`OrderedSet`      — insertion-ordered unique elements
+- :class:`HashMap`         — fluent dict wrapper
+- :class:`BiMap`           — bidirectional one-to-one map
+- :class:`MultiMap`        — map with multiple values per key
+- :class:`PriorityQueue`   — heap-backed priority queue
+- :class:`CircularBuffer`  — fixed-capacity ring buffer
 
 Functional utilities
 --------------------
@@ -50,6 +74,10 @@ from nestifypy.collections.stack import Stack
 from nestifypy.collections.queue import Queue
 from nestifypy.collections.ordered_set import OrderedSet
 from nestifypy.collections.hash_map import HashMap
+from nestifypy.collections.bi_map import BiMap
+from nestifypy.collections.multi_map import MultiMap
+from nestifypy.collections.priority_queue import PriorityQueue
+from nestifypy.collections.circular_buffer import CircularBuffer
 from nestifypy.collections.stream import Stream, StreamExhaustedException
 from nestifypy.collections.optional import Optional
 from nestifypy.collections.result import Result
@@ -62,6 +90,10 @@ __all__ = [
     "Queue",
     "OrderedSet",
     "HashMap",
+    "BiMap",
+    "MultiMap",
+    "PriorityQueue",
+    "CircularBuffer",
     # Functional utilities
     "Stream",
     "Optional",

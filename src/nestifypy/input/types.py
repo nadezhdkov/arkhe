@@ -274,6 +274,32 @@ class InputResult:
         return self._raw.strip()
 
     # ------------------------------------------------------------------ #
+    # Auto Inference
+    # ------------------------------------------------------------------ #
+
+    @property
+    def auto(self) -> bool | int | float | str:
+        """
+        Attempts to automatically infer the type of the input.
+        Checks bool -> int -> float -> fallback to str.
+        """
+        raw = self._raw.strip()
+        lower = raw.lower()
+        if lower in _TRUTHY:
+            return True
+        if lower in _FALSY:
+            return False
+        try:
+            return int(raw)
+        except ValueError:
+            pass
+        try:
+            return float(raw)
+        except ValueError:
+            pass
+        return raw
+
+    # ------------------------------------------------------------------ #
     # Choice
     # ------------------------------------------------------------------ #
 

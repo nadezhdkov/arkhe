@@ -61,14 +61,14 @@ def test_json_file_io(tmp_path):
     assert isinstance(raw, dict)
     assert raw["hello"] == "world"
     
-    # Load as DotDict
+    # Load as Dict
     dot = Json.load(p)
-    assert dot.nested.key == "value"
+    assert dot["nested"]["key"] == "value"
     
     # Load with defaults
     dot_defaults = Json.load(p, defaults={"new_key": "new_value"})
-    assert dot_defaults.new_key == "new_value"
-    assert dot_defaults.hello == "world"
+    assert dot_defaults["new_key"] == "new_value"
+    assert dot_defaults["hello"] == "world"
 
 def test_invalid_json_file(tmp_path):
     p = tmp_path / "bad.json"

@@ -540,6 +540,9 @@ class Job:
                 return
 
         if self._mode == JobMode.ONCE:
+            if self._interval > 0:
+                if self._stop_event.wait(self._interval):
+                    return
             self._execute()
             with self._lock:
                 self._state = JobState.COMPLETED

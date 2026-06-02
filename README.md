@@ -4,7 +4,7 @@
 
 # 🪺 Nestifypy
 
-**A modern, declarative utility and game framework for Python 3.10+**
+> A modern, declarative utility and game framework for Python 3.10+
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/nestifypy/nestifypy/actions)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/nestifypy/)
@@ -12,9 +12,9 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![PyPI](https://img.shields.io/pypi/v/nestifypy?style=flat-square)](https://pypi.org/project/nestifypy/)
 
-Nestifypy is a modular Python framework designed around **declarative patterns**, **developer ergonomics**, and **strict type safety** — whether you're building enterprise CLIs, intelligent configuration systems, or fully-featured 2D games.
+Nestifypy is a modular Python framework built around **declarative patterns**, **developer ergonomics**, and **strict type safety** — whether you're building enterprise CLIs, intelligent configuration systems, or fully-featured 2D games.
 
-[Installation](#-installation) · [Modules](#-ecosystem) · [Quick Start](#-quick-start) · [Docs](#-documentation) · [Contributing](#-contributing)
+[Installation](#-installation) · [Ecosystem](#-ecosystem) · [Quick Start](#-quick-start) · [Docs](#-documentation) · [Contributing](#-contributing)
 
 </div>
 
@@ -43,7 +43,7 @@ pip install nestifypy-ignite[all]
 
 ## 🌐 Ecosystem
 
-Nestifypy is composed of several independent, high-performance packages. Use what you need.
+> Nestifypy is composed of several independent, high-performance packages. Use what you need.
 
 | Package | Description |
 |---|---|
@@ -53,14 +53,18 @@ Nestifypy is composed of several independent, high-performance packages. Use wha
 | [**YAML**](#-yaml--intelligent-config-registry) | O(1) intelligent YAML registry with hot-reload |
 | [**Env**](#-env--environment-management) | Typed, chainable `.env` variable management |
 | [**Loom**](#-loom--configuration-engine) | Hierarchical typed config format (`.loom` files) |
+| [**Net**](#-net--http-client) | Fluent HTTP client — zero external dependencies |
 | [**Flow**](#-flow--control-flow) | Task scheduling, throttling, concurrency helpers |
-| [**Promise**](#-promise) | Asynchronous execution API without asyncio |
-| [**Trying**](#-trying) | Functional error handling with Try monad |
+| [**Scheduler**](#-scheduler) | Fluent cron-style task scheduler, thread-safe |
+| [**Promise**](#-promise) | Asynchronous execution without asyncio |
+| [**Trying**](#-trying) | Functional error handling — Try monad |
 | [**Input**](#-input) | Interactive CLI inputs, forms, and validation |
 | [**Decorators**](#-decorators) | Caching, retries, validation, events and more |
 | [**Collections**](#-collections) | Java-inspired strongly-typed data structures |
 | [**Console**](#-console--terminal-utilities) | Rich terminal output, spinners, tables, prompts |
-| [**SLogger**](#-core--logger-registry-plugins) | Logger (Slogger), Registry, Plugin system |
+| [**SLogger**](#-slogger--system-logger) | Professional logger with colours, formatters, decorators |
+| [**Math**](#-math) | Game-ready math primitives — vectors, matrices, easing |
+| [**OS**](#-os--file-utilities) | Fluent file and OS interaction helpers |
 
 ---
 
@@ -69,21 +73,21 @@ Nestifypy is composed of several independent, high-performance packages. Use wha
 ### Smart Configuration
 
 ```python
-from nestifypy import yaml
+from nestifypy import yaml, env
 from nestifypy.env import Env
 
 Env.load()
 
-# Fetch from any .yml file in your project using dot-notation
+# Fetch from any .yml file using dot-notation
 db_host = yaml.get("database.host")
 
 # Or use the Pythonic attribute API
 db_port = yaml.database.port
 
 # Chainable typed env var access
-debug   = env.debug.bool
-port    = env.db.port.int
-hosts   = env.allowed_hosts.list
+debug = env.debug.bool
+port  = env.db.port.int
+hosts = env.allowed_hosts.list
 ```
 
 ### Enterprise App with Ignite
@@ -144,7 +148,7 @@ class Player(Entity):
         super().__init__(
             x=x, y=y,
             rigidbody=Rigidbody(body_type=BodyType.DYNAMIC, mass=1.0),
-            collider=BoxCollider(width=32, height=32)
+            collider=BoxCollider(width=32, height=32),
         )
 
     @Entity.update
@@ -181,14 +185,14 @@ connect(conf)
 
 ## 🔥 Ignite — Enterprise Application Framework
 
-A Spring Boot-inspired framework for production Python apps.
+> A Spring Boot-inspired framework for production Python apps.
 
 **Features:** IoC container, constructor injection, lifecycle hooks, EventBus, FastAPI integration, cron scheduling, JWT security, profile-aware configuration, and a `TestContainer` for mocking.
 
 ### Dependency Injection
 
 ```python
-from nestifypy.ignite.decorators import Service, Repository, Component
+from nestifypy.ignite.decorators import Service, Repository
 
 @Repository
 class UserRepository:
@@ -197,8 +201,7 @@ class UserRepository:
 
 @Service
 class UserService:
-    # EmailRepository injected automatically by type
-    def __init__(self, repo: UserRepository):
+    def __init__(self, repo: UserRepository):  # injected automatically by type
         self.repo = repo
 
     def get_user(self, id: int):
@@ -299,7 +302,7 @@ pip install nestifypy-ignite[all]       # everything
 
 ## 🦎 Komodo — Metaprogramming
 
-Lombok-style annotation-driven metaprogramming. Eliminates class boilerplate using composable decorators — no metaclasses, no runtime proxies.
+> Lombok-style, annotation-driven metaprogramming. Eliminates class boilerplate using composable decorators — no metaclasses, no runtime proxies.
 
 ### Core Decorators
 
@@ -323,7 +326,6 @@ Lombok-style annotation-driven metaprogramming. Eliminates class boilerplate usi
 ```python
 from nestifypy.komodo import komodo
 
-# Rich domain entity
 @komodo.logger
 @komodo.copyable
 @komodo.data
@@ -333,7 +335,7 @@ class Product:
     price: float
     active: bool = True
 
-p = Product(1, "Widget", 9.99)
+p  = Product(1, "Widget", 9.99)
 p2 = p.copy_with(price=7.99)
 Product.logger.info("Price updated")
 
@@ -377,7 +379,7 @@ class BankAccount:
     @contract(
         requires(lambda self, amount: amount > 0, "amount must be positive"),
         ensures(lambda result: result is None, "withdraw returns None"),
-        invariant(lambda self: self.balance >= 0, "balance must never be negative")
+        invariant(lambda self: self.balance >= 0, "balance must never be negative"),
     )
     def withdraw(self, amount: float) -> None:
         self.balance -= amount
@@ -387,7 +389,7 @@ class BankAccount:
 
 ## 🎮 Pyunix — 2D Game Engine
 
-A fully declarative game engine built on top of Pygame. Inspired by Unity and Godot — no messy `while True` loops.
+> A fully declarative game engine built on top of Pygame — inspired by Unity and Godot. No messy `while True` loops.
 
 ### Game Loop
 
@@ -399,11 +401,11 @@ class MyGame:
 
     @Game.start
     def on_start(self):
-        pass  # Load resources, create entities
+        pass  # load resources, create entities
 
     @Game.update
     def on_update(self, dt: float):
-        pass  # Frame logic
+        pass  # frame logic
 
     @Game.draw
     def on_draw(self, screen):
@@ -443,7 +445,6 @@ class Player(Entity):
     def move(self, dt):
         h = Input.get_axis("horizontal")
         self.rigidbody.velocity.x = h * 200
-
         if Input.action_just_pressed("jump") and self.on_ground:
             self.rigidbody.add_impulse(Vector2(0, -450))
 
@@ -487,7 +488,7 @@ class Player(Entity):
 
 ## ⚙️ YAML — Intelligent Config Registry
 
-Not just a parser — a runtime configuration engine with O(1) lookup and hot-reload.
+> Not just a parser — a runtime configuration engine with O(1) lookup and hot-reload.
 
 ```yaml
 # config/database.yml
@@ -502,9 +503,9 @@ database:
 ```python
 from nestifypy import yaml
 
-# Zero-boilerplate: auto-scans .yml files in your project
-host     = yaml.get("database.host")        # string path
-max_pool = yaml.database.pool.max_size      # Pythonic attribute access
+# Zero-boilerplate: auto-scans all .yml files in your project
+host     = yaml.get("database.host")      # string dot-path
+max_pool = yaml.database.pool.max_size    # Pythonic attribute access
 
 # Watch for changes in long-running processes
 yaml.watch(True)
@@ -514,10 +515,10 @@ def game_loop():
         speed = yaml.get("game.player.speed")  # updates automatically
 ```
 
-**How it works:** On first access, Nestifypy scans your project and generates a `.nestifypy/yaml_index.json` flat index mapping every dot-path to its file. Subsequent lookups are O(1). Only changed files are re-parsed.
+**How it works:** on first access, Nestifypy scans your project and generates a `.nestifypy/yaml_index.json` flat index mapping every dot-path to its source file. Subsequent lookups are O(1). Only changed files are re-parsed.
 
 ```python
-# Explicit scan for specific directories
+# Explicit scan for a specific directory
 from pathlib import Path
 yaml.scan(Path("src/config/"))
 
@@ -531,7 +532,7 @@ print(yaml.where("database.host"))  # "/absolute/path/to/database.yml"
 
 ## 🔒 Env — Environment Management
 
-Modern, typed, chainable `.env` variable management. Inspired by NestJS and Spring Boot.
+> Modern, typed, chainable `.env` variable management. Inspired by NestJS and Spring Boot.
 
 ```python
 from nestifypy import env
@@ -539,19 +540,21 @@ from nestifypy.env import Env
 
 Env.load()  # or Env.load("config/.env")
 
-# Chainable attribute access with auto-uppercasing
+# Chainable attribute access — auto-uppercases segments
 host  = env.db.host             # → DB_HOST
 port  = env.db.port.int         # → int(DB_PORT)
 debug = env.debug.bool          # → bool(DEBUG)
 hosts = env.allowed_hosts.list  # → ["localhost", "127.0.0.1"]
 
-# Safe defaults and required fields
-secret = env.secret_key.required             # raises ConfigError if missing
-db_pw  = env.db.password.default("root")    # fallback value
+# Safe defaults and required guards
+secret = env.secret_key.required          # raises ConfigError if missing
+db_pw  = env.db.password.default("root")  # fallback value
+```
 
+**Resolution flow** — `env.db.pool.max_size.int` translates to `int(os.environ["DB_POOL_MAX_SIZE"])`.
+
+```python
 # Descriptor API for config classes
-from nestifypy.env import Env
-
 class Config:
     host = Env.property("DB_HOST", default="localhost")
     port = Env.property("DB_PORT", cast_type=int, default=5432)
@@ -566,7 +569,7 @@ def connect(api_key=None, host=None):
 
 ## 🧵 Loom — Configuration Engine
 
-A structured alternative to `.env`/`python-dotenv` with hierarchical, typed, modular config files.
+> A structured alternative to `.env` — hierarchical, typed, modular config files. Zero external dependencies.
 
 ```loom
 # app.loom
@@ -591,9 +594,9 @@ from nestifypy.loom import Loom, env
 
 Loom.load("app.loom")
 
-host  = env.app.server.host        # fully qualified
-port  = env.server.port.int        # scope-level flattening
-debug = env.debug.bool             # global flattening (if unique)
+host  = env.app.server.host     # fully qualified
+port  = env.server.port.int     # scope-level flattening
+debug = env.debug.bool          # global flattening (if unique)
 
 # Schema binding to dataclasses
 import dataclasses
@@ -632,9 +635,84 @@ Hint:    Replace with: host: "localhost"
 
 ---
 
+## 🌐 Net — HTTP Client
+
+> Fluent HTTP client for the Nestifypy ecosystem. No external dependencies — pure stdlib (`urllib`).
+
+**Before (standard Python):**
+
+```python
+import urllib.request, json
+
+req = urllib.request.Request(
+    "https://api.github.com/users/octocat",
+    headers={"Authorization": "Bearer token"},
+)
+with urllib.request.urlopen(req, timeout=5) as r:
+    data = json.loads(r.read())
+```
+
+**After (Nestifypy Net):**
+
+```python
+from nestifypy.net import request, API
+
+r = (
+    request("https://api.github.com/users/octocat")
+    .auth_bearer(token)
+    .timeout(5)
+    .get()
+)
+if r.success:
+    print(r.json)
+```
+
+### Fluent builder
+
+```python
+result = (
+    request("https://api.example.com/users/42")
+    .auth_bearer("my-token")
+    .timeout(10)
+    .retry(attempts=3, delay=1, exponential=True)
+    .cache(minutes=5)
+    .expect(200)
+    .on_success(lambda r: print(f"Loaded in {r.elapsed_ms:.0f}ms"))
+    .get()
+)
+```
+
+### Reusable session with `API`
+
+```python
+api = (
+    API("https://api.github.com")
+    .auth_bearer(token)
+    .timeout(10)
+    .retry(3)
+)
+
+octocat = api.get("/users/octocat").json
+repos   = api.get("/users/octocat/repos").json
+```
+
+### Response
+
+| Property | Description |
+|---|---|
+| `r.status` | HTTP status code |
+| `r.success` / `r.ok` | `True` if `200 ≤ status < 300` |
+| `r.json` | Deserialised body |
+| `r.text` | Body as UTF-8 string |
+| `r.elapsed_ms` | Execution time in ms |
+| `r.headers` | Response headers dict |
+| `r.cookies` | Cookies from `Set-Cookie` |
+
+---
+
 ## ⏱ Flow — Control Flow
 
-Advanced task scheduling, throttling, concurrency, and rate limiting.
+> Advanced task scheduling, throttling, concurrency, and rate limiting.
 
 ```python
 from nestifypy.flow import Flow
@@ -667,80 +745,177 @@ def on_search_input(query):
 
 ---
 
-## ✨ Decorators
+## 🗓 Scheduler
 
-A comprehensive suite of utility decorators, all preserving function metadata via `functools.wraps`.
-
-### Execution & Performance
+> Fluent cron-style task scheduler — thread-safe, no asyncio, no external dependencies.
 
 ```python
-from nestifypy.decorators import benchmark, cache, once, rate_limit
+from nestifypy.scheduler import Scheduler
+
+# Run every 30 seconds
+Scheduler.every(30).seconds(sync_cache)
+
+# Run every 5 minutes with retry and logging
+Scheduler.every(5).minutes(
+    lambda: request("https://api.example.com/health").get()
+).log()
+
+# Named job with error handler
+Scheduler.every(1).hours(generate_report) \
+         .name("daily-report") \
+         .on_error(lambda ex: log.error(ex))
+
+Scheduler.start()
+```
+
+---
+
+## ✨ Promise
+
+> Asynchronous execution without asyncio, event loops, or futures. Inspired by JavaScript Promises, Java `CompletableFuture`, and C# Tasks.
+
+```python
+from nestifypy.promise import Promise
+
+# Chain transformations
+Promise.of(load_user) \
+       .map(lambda user: user.name) \
+       .map(str.upper) \
+       .then(print) \
+       .catch(log_error) \
+       .finally_(cleanup)
+
+# Parallel execution
+results = Promise.all(
+    load_users,
+    load_orders,
+    load_products,
+).join(timeout=30)
+# → [users, orders, products]
+
+# Race — first to finish wins
+Promise.race(server1, server2, server3).then(use_fastest)
+```
+
+**Built-in options in `.of()`:**
+
+```python
+Promise.of(api_request, delay=1, timeout=10, retry=3)
+```
+
+**Internals:** `concurrent.futures.ThreadPoolExecutor` with a shared global pool. No asyncio exposed.
+
+---
+
+## 🛡 Trying
+
+> Functional error handling without `try/except` scattered across your code. Inspired by Kotlin `Try`, Rust `Result`, and Scala `Either`.
+
+**Before:**
+
+```python
+try:
+    user = load_user()
+    if not user.active:
+        raise Exception("Inactive")
+    print(user.name)
+except Exception:
+    print("Guest")
+```
+
+**After:**
+
+```python
+from nestifypy.trying import Try
+
+Try.of(load_user) \
+   .filter(lambda u: u.active, "Inactive user") \
+   .map(lambda u: u.name) \
+   .recover(lambda ex: "Guest") \
+   .on_success(print)
+```
+
+### API Summary
+
+| Method | `Success` | `Failure` |
+|---|---|---|
+| `.map(fn)` | Transforms value | Passes through |
+| `.flat_map(fn)` | `fn` returns Try | Passes through |
+| `.filter(pred, msg)` | Fails if pred=False | Passes through |
+| `.recover(fn)` | Passes through | Converts to Success |
+| `.recover_if(type, fn)` | Passes through | Recovers only on matching type |
+| `.on_success(fn)` | Executes `fn(value)` | Ignored |
+| `.on_failure(fn)` | Ignored | Executes `fn(error)` |
+| `.tap(fn)` | Side-effect, returns self | Ignored |
+| `.or_else(default)` | Returns value | Returns default |
+| `.to_optional()` | Returns value | Returns `None` |
+| `.to_promise()` | `Promise.resolved(v)` | `Promise.rejected(e)` |
+
+---
+
+## 🎛 Input
+
+> Interactive CLI inputs, forms, and validation.
+
+```python
+from nestifypy.input import Input
+
+name  = Input.text("What is your name?", default="Guest")
+age   = Input.integer("Age?", min=0, max=120)
+email = Input.email("Email address?")
+tags  = Input.multi_select("Topics", ["Python", "Games", "Web"])
+```
+
+---
+
+## ✨ Decorators
+
+> A comprehensive suite of utility decorators. All preserve function metadata via `functools.wraps`.
+
+```python
+from nestifypy.decorators import benchmark, cache, retry, validate_types, event, emit
 
 @benchmark
 @cache
 def expensive_calculation(x):
     return sum(i * i for i in range(x))
-```
-
-### Error Handling & Resiliency
-
-```python
-from nestifypy.decorators import safe, trace, retry
 
 @retry(times=3, delay=2.0)
 def fetch_api_data():
     pass
 
-@safe  # catches all exceptions, returns None instead of crashing
-def risky_operation():
-    pass
-```
-
-### Type Validation
-
-```python
-from nestifypy.decorators import validate_types, not_null, validate
-
 @validate_types
 def process_user(age: int, name: str):
     pass  # raises TypeError if types don't match
-
-@not_null
-def create_record(id, name):
-    pass  # raises ValueError if any arg is None
-```
-
-### Architecture & Events
-
-```python
-from nestifypy.decorators import singleton, observable, event, emit, startup, shutdown
 
 @event("user_registered")
 def send_welcome_email(user_id):
     pass
 
-# Trigger from anywhere
 emit("user_registered", 101)
-
-@startup
-def init_database():
-    pass
-
-@shutdown
-def close_connections():
-    pass
 ```
 
-**Full decorator list:** `@benchmark`, `@cache`, `@once`, `@rate_limit`, `@safe`, `@trace`, `@retry`, `@threaded`, `@async_task`, `@delay`, `@not_null`, `@validate`, `@validate_types`, `@singleton`, `@observable`, `@startup`, `@shutdown`, `@event`, `@deprecated`, `@experimental`.
+| Category | Decorators |
+|---|---|
+| Execution | `@benchmark`, `@cache`, `@once`, `@rate_limit` |
+| Resiliency | `@safe`, `@trace`, `@retry` |
+| Threading | `@threaded`, `@async_task`, `@delay` |
+| Validation | `@not_null`, `@validate`, `@validate_types` |
+| Architecture | `@singleton`, `@observable`, `@startup`, `@shutdown`, `@event` |
+| Documentation | `@deprecated`, `@experimental` |
 
 ---
 
 ## 🗂 Collections
 
-Java-inspired, fluent data structures with type hints support.
+> Java-inspired, fluent data structures with type hints support.
 
 ```python
-from nestifypy.collections import ArrayList, LinkedList, Stack, Queue, OrderedSet, HashMap
+from nestifypy.collections import (
+    ArrayList, LinkedList, Stack, Queue,
+    OrderedSet, HashMap, BiMap, MultiMap,
+    PriorityQueue, CircularBuffer, Stream, Optional, Result,
+)
 
 # Fluent ArrayList
 lista = ArrayList()
@@ -751,30 +926,53 @@ stack = Stack()
 stack.push("Scene1").push("Scene2")
 active = stack.pop()
 
-# FIFO Queue (built on collections.deque)
-q = Queue()
-q.enqueue("Task1").enqueue("Task2")
-task = q.dequeue()  # "Task1"
+# Priority Queue (min-heap by default)
+tasks = PriorityQueue()
+tasks.add("High priority", priority=1)
+tasks.add("Low priority",  priority=10)
+tasks.poll()  # "High priority"
 
-# Ordered uniqueness
-oset = OrderedSet()
-oset.add("A").add("B").add("A")  # ["A", "B"]
+# Fixed-capacity ring buffer
+logs = CircularBuffer(3)
+logs.add("A").add("B").add("C").add("D")
+logs.to_list()  # ["B", "C", "D"]
 
-# Fluent HashMap
-map = HashMap()
-map.put("hero", "Link").put("weapon", "Sword")
+# Lazy Stream pipeline
+result = (
+    Stream.range(1, 11)
+    .filter(lambda n: n % 2 == 0)
+    .map(lambda n: n ** 2)
+    .take(3)
+    .to_list()
+)  # [4, 16, 36]
 ```
+
+| Structure | Description |
+|---|---|
+| `ArrayList` | Dynamic array with fluent API and bounds-checking |
+| `LinkedList` | Doubly-linked list, O(1) insertions at both ends |
+| `Stack` | LIFO, backed by Python list |
+| `Queue` | FIFO, backed by `collections.deque` |
+| `OrderedSet` | Unique elements preserving insertion order |
+| `HashMap` | Fluent dict wrapper |
+| `BiMap` | Bidirectional one-to-one map |
+| `MultiMap` | One key → many values |
+| `PriorityQueue` | Heap-backed, min or max, custom key |
+| `CircularBuffer` | Fixed-capacity ring buffer — evicts oldest |
+| `Stream` | Lazy functional pipeline (map, filter, reduce…) |
+| `Optional` | Null-safe container — eliminates `if x is not None` |
+| `Result` | Discriminated union — `Ok(value)` / `Err(error)` |
 
 ---
 
 ## 🖥 Console — Terminal Utilities
 
-Rich terminal output for modern CLI applications.
+> Rich terminal output for modern CLI applications.
 
 ```python
 from nestifypy.console import Console
 
-# Colored printing
+# Coloured printing
 Console.success("Migration complete!")
 Console.error("Failed to connect.")
 Console.warn("Memory usage high.")
@@ -804,37 +1002,95 @@ Console.table([
 
 ---
 
-## 🔧 Core — Logger, Registry, Plugins
+## 📋 SLogger — System Logger
 
-Application backbone: standardized logger, global registry, dynamic plugin system.
+> A professional, colourised, extensible logger — from `"Hello, World!"` to production.
 
 ```python
-from nestifypy.slogger import Logger, LogLevel, Registry, Plugin
+from nestifypy.slogger import get_logger, SLogger, LogLevel
 
-# Logger
-Logger.set_level(LogLevel.DEBUG)
-Logger.set_prefix("MY_APP")
-Logger.set_file("app.log")
-Logger.info("Application started.")
-Logger.warn("Memory usage is high.")
-Logger.error("Failed to connect.")
-Logger.trace()  # print full stacktrace
+log = get_logger("server", level=LogLevel.DEBUG, file="server.log")
 
-# Registry — namespaced global state
-Registry.register("services", "database", db_instance)
-db = Registry.get("services", "database")
+log.info("Server starting on port 8080")
+log.success("Database connected!")
+log.warn("Memory usage above 80%")
+log.error("Failed to reach upstream service")
+log.fatal("Unrecoverable error — shutting down")
 
+# Decorators
+@log.log_calls(show_return=True, show_time=True)
+def calculate(x, y):
+    return x + y
 
-# Plugin system
-@Plugin.info(name="auth_plugin", version="1.0.0", description="OAuth support")
-class AuthPlugin:
-    def authenticate(self):
-        pass
+@log.catch_errors(ConnectionError, default=None)
+def connect_database(host: str):
+    ...
 
+@log.time_it(label="startup sequence")
+def boot():
+    ...
+```
 
-Plugin.register(AuthPlugin)
-Plugin.load("plugins/custom_auth.py")
-all_plugins = Plugin.all()
+### Log Levels
+
+| Level | Colour | Use |
+|---|---|---|
+| `TRACE` | Dim cyan | Detailed flow tracing |
+| `DEBUG` | Cyan | Internal variables, states |
+| `INFO` | Blue | Normal application events |
+| `SUCCESS` | Bright green | Completed operations |
+| `WARN` | Bright yellow | Unusual, non-critical situations |
+| `ERROR` | Bright red | Recoverable errors |
+| `FATAL` | Red background | Unrecoverable failures |
+
+### Formatters
+
+```python
+from nestifypy.slogger import get_logger, JSONFormatter
+
+# Default:  [14:32:01] [INFO ] [server] Message
+# Simple:   [INFO ] Message
+# JSON:     {"ts": "14:32:01", "level": "INFO", "prefix": "server", "msg": "Message"}
+
+log = get_logger("api", formatter=JSONFormatter())
+```
+
+---
+
+## 🧮 Math
+
+> Game-ready math primitives — vectors, matrices, easing functions, and geometry utilities.
+
+```python
+from nestifypy.pyunix.math import Vector2, Vector3, Matrix4, Color
+
+v  = Vector2(3, 4)
+v2 = v.normalised()     # (0.6, 0.8)
+d  = v.dot(Vector2(1, 0))
+
+# Color
+red   = Color.RED
+faded = red.lerp(Color.BLACK, 0.5)
+```
+
+---
+
+## 📁 OS & File Utilities
+
+> Fluent file and OS interaction helpers.
+
+```python
+from nestifypy.os import File, Dir
+
+# File operations
+content = File("config.json").read()
+File("output.txt").write("Hello, World!")
+File("data.json").copy_to("backup/data.json")
+
+# Directory operations
+Dir("src/").list()          # list all entries
+Dir("logs/").ensure()       # create if not exists
+Dir("old/").delete()
 ```
 
 ---
@@ -856,13 +1112,13 @@ Generated structure includes pre-configured support for `ruff`, `pytest`, and `m
 ### v0.2.3
 - **Trying:** Added `Try` monad for fluent, functional error handling without `try/except`.
 - **Promise:** Implemented modern Promise API for async execution (`then`, `catch`, `all`, `race`) without asyncio.
-- **Input:** Added comprehensive module for interactive CLI inputs, form handling, and data sanitization.
-- **Slogger:** Upgraded core logger module to `slogger`.
+- **Input:** Added comprehensive module for interactive CLI inputs, form handling, and data sanitisation.
+- **SLogger:** Upgraded core logger module — colours, formatters, decorators, context managers.
 - **Scheduler:** Added robust `@Scheduled` cron job decorator for the Ignite framework.
 
 ### v0.2.2
 - **Pyunix:** Fixed physics bounding box discrepancies (`rect.topleft` vs `rect.center`) ensuring pixel-perfect `BoxCollider` interactions.
-- **FlappyBird Demo:** Refactored `examples/flappybird.py` to use Pyunix's modern physics engine, Animator and Trigger zones. Fixed ghost pipe collider on reset.
+- **FlappyBird Demo:** Refactored `examples/flappybird.py` to use Pyunix's modern physics engine, Animator, and Trigger zones. Fixed ghost pipe collider on reset.
 - **Ignite Docs:** Published comprehensive documentation covering DI, FastAPI, EventBus, Scheduled Tasks, and TestContainers.
 
 ### v0.2.1
@@ -878,18 +1134,24 @@ Generated structure includes pre-configured support for `ruff`, `pytest`, and `m
 
 Full documentation is available in the `docs/` directory:
 
-- 🔥 [Ignite Framework](docs/ignite.md)
-- 🦎 [Komodo Metaprogramming](docs/komodo.md)
-- 🎮 [Pyunix Game Engine](docs/pyunix.md)
-- ⚙️ [YAML Intelligent Registry](docs/yaml.md)
-- 🔒 [Environment Management](docs/env.md)
-- 🧵 [Loom Configuration](docs/loom.md)
-- ⏱ [Flow Control](docs/flow.md)
-- ✨ [Decorators](docs/decorators.md)
-- 🗂 [Collections](docs/collections.md)
-- 🖥 [Console Utilities](docs/console.md)
-- 🔧 [Core Systems](docs/core.md)
-- 📁 [OS & File Utilities](docs/os.md)
+| Module | Doc |
+|---|---|
+| 🔥 Ignite Framework | [docs/ignite.md](docs/ignite.md) |
+| 🦎 Komodo Metaprogramming | [docs/komodo.md](docs/komodo.md) |
+| 🎮 Pyunix Game Engine | [docs/pyunix.md](docs/pyunix.md) |
+| ⚙️ YAML Intelligent Registry | [docs/yaml.md](docs/yaml.md) |
+| 🔒 Environment Management | [docs/env.md](docs/env.md) |
+| 🧵 Loom Configuration | [docs/loom.md](docs/loom.md) |
+| 🌐 Net HTTP Client | [docs/net.md](docs/net.md) |
+| ⏱ Flow Control | [docs/flow.md](docs/flow.md) |
+| 🗓 Scheduler | [docs/scheduler.md](docs/scheduler.md) |
+| ✨ Promise | [docs/promise.md](docs/promise.md) |
+| 🛡 Trying | [docs/trying.md](docs/trying.md) |
+| ✨ Decorators | [docs/decorators.md](docs/decorators.md) |
+| 🗂 Collections | [docs/collections.md](docs/collections.md) |
+| 🖥 Console Utilities | [docs/console.md](docs/console.md) |
+| 📋 SLogger | [docs/slogger.md](docs/slogger.md) |
+| 📁 OS & File Utilities | [docs/os.md](docs/os.md) |
 
 ---
 

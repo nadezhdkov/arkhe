@@ -1,7 +1,13 @@
 # nestifypy.komodo
 
-> Lombok-style annotation-driven metaprogramming for Python.  
-> Elimina boilerplate de classes via decorators — sem metaclasses, sem magia opaca.
+> Um verdadeiro Lombok para Python — metaprogramação via AST com zero overhead em runtime.
+
+O Komodo transforma classes Python em tempo de importação utilizando manipulação direta da **Abstract Syntax Tree (AST)**. Os métodos gerados são bytecode nativo — equivalentes a código escrito manualmente pelo programador. Sem wrappers, sem monkey-patching, sem metaclasses.
+
+**Engine:** AST nativa (ast.parse → transform → compile → exec)  
+**Python:** 3.10+  
+**Dependencies:** nenhuma (stdlib only)  
+**Versão:** 0.2.1
 
 ---
 
@@ -9,31 +15,33 @@
 
 - [Instalação](#instalação)
 - [Visão Geral](#visão-geral)
+- [Como Funciona — AST Engine](#como-funciona--ast-engine)
 - [Referência de Decorators](#referência-de-decorators)
   - [@komodo.constructor](#komodoconstructor)
   - [@komodo.data](#komododata)
   - [@komodo.value](#komodovalue)
+  - [@komodo.record](#komodorecord)
   - [@komodo.builder](#komodobuilder)
+  - [@komodo.singular()](#komodosingular)
   - [@komodo.immutable](#komodoimmutable)
   - [@komodo.logger](#komodologger)
   - [@komodo.non_null](#komodonon_null)
-  - [@komodo.singleton](#komodosingleton)
-  - [@komodo.copyable](#komodocopyable)
   - [@komodo.validated](#komodovalidated)
-  - [@komodo.observable](#komodoobservable)
-  - [@komodo.sealed](#komodosealed)
-  - [@komodo.deprecated](#komododeprecated)
+  - [@komodo.copyable](#komodocopyable)
   - [@komodo.accessors()](#komodoaccessors)
-  - [@komodo.delegate()](#komododelegate)
-  - [@komodo.mixin()](#komodomixin)
+  - [@komodo.getter / @komodo.setter / @komodo.withers](#komodogetter--komodosetter--komodowithers)
+  - [@komodo.to_dict / @komodo.from_dict / @komodo.json](#komodoto_dict--komodofrom_dict--komodojson)
+  - [@komodo.equals_and_hashcode / @komodo.to_string](#komodoequals_and_hashcode--komodoto_string)
 - [Design by Contract](#design-by-contract)
   - [@contract](#contract)
   - [requires()](#requires)
   - [ensures()](#ensures)
   - [invariant()](#invariant)
+  - [ContractViolationError](#contractviolationerror)
 - [KomodoInspector](#komodoinspector)
 - [Composição de Decorators](#composição-de-decorators)
 - [Comparação com Lombok](#comparação-com-lombok)
+- [Arquitectura Interna](#arquitectura-interna)
 - [Notas Técnicas](#notas-técnicas)
 
 ---
@@ -47,18 +55,31 @@ nestifypy/
 ├── __init__.py
 ├── komodo/
 │   ├── __init__.py
-│   ├── core.py
-│   ├── contract.py
-│   └── inspect.py
-├── flow.py
-└── decorators.py
+│   ├── core.py              # namespace de decorators
+│   ├── ast_engine.py         # motor AST central
+│   ├── ast_builders.py       # helpers para construção de nós AST
+│   ├── contract.py           # Design by Contract
+│   ├── inspect.py            # KomodoInspector
+│   └── ast_generators/       # geradores por feature
+│       ├── __init__.py
+│       ├── constructor.py
+│       ├── repr.py
+│       ├── eq_hash.py
+│       ├── record.py
+│       ├── immutable.py
+│       ├── builder.py
+│       ├── accessors.py
+│       ├── validation.py
+│       ├── logger.py
+│       ├── copyable.py
+│       ├── serialization.py
+│       └── utils.py
 ```
 
 Importação:
 
 ```python
-from nestifypy.komodo import komodo
-from nestifypy.komodo import contract, KomodoInspector
+from nestifypy.komodo import komodo, contract, KomodoInspector
 from nestifypy.komodo.contract import requires, ensures, invariant, ContractViolationError
 ```
 
@@ -66,7 +87,7 @@ from nestifypy.komodo.contract import requires, ensures, invariant, ContractViol
 
 ## Visão Geral
 
-`komodo` é um namespace de decorators de classe que reescrevem a classe **em tempo de definição**, sem metaclasses nem proxies em runtime. Cada decorator é independente e composável.
+`komodo` é um namespace de decorators de classe que reescreve a classe **em tempo de definição** via manipulação da AST. Cada decorator é independente e composável — empilhar múltiplos decorators acumula transformações na mesma árvore antes da compilação final.
 
 ```python
 from nestifypy.komodo import komodo
@@ -79,12 +100,40 @@ class User:
     email: str
     role: str = "user"
 
-# Tudo gerado automaticamente:
+# Tudo gerado nativamente via AST:
 u = User("Alice", "alice@example.com")
 print(u)                          # User(name='Alice', email='alice@example.com', role='user')
 u2 = u.copy_with(role="admin")
 User.logger.info("User created")
 ```
+
+---
+
+## Como Funciona — AST Engine
+
+O Komodo **não** usa closures, `setattr`, ou wrappers dinâmicos. O fluxo é:
+
+```
+Classe Original (source code)
+        ↓
+   ast.parse()          → Árvore Sintática (ast.Module)
+        ↓
+   Generators           → Mutação da AST (inserção de FunctionDef, ClassDef, etc.)
+        ↓
+   compile()            → Code object (bytecode nativo)
+        ↓
+   exec()               → Classe final no namespace do módulo
+```
+
+**Consequências práticas:**
+
+- O `dis.dis(MyClass.__init__)` mostra bytecode idêntico a uma classe escrita à mão
+- Não há frames extras na stack trace
+- `inspect.getsource()` continua funcional
+- Performance de instanciação é O(1) — sem interceptações
+- Decorators são removidos automaticamente da AST para evitar recursão infinita
+
+**Stacking de decorators:** Quando múltiplos decorators são empilhados, a AST é preservada entre chamadas via `cls.__komodo_ast__`. Cada gerador opera na mesma árvore, e a compilação ocorre uma vez por decorator aplicado.
 
 ---
 
@@ -108,7 +157,7 @@ s2 = Server("0.0.0.0", 443)
 s3 = Server(host="api.example.com", port=443, debug=True)
 ```
 
-**`__post_init__`**: se definires este método, é chamado automaticamente no final do `__init__` gerado, similar ao `dataclass`:
+**`__post_init__`**: se definires este método, é chamado automaticamente no final do `__init__` gerado:
 
 ```python
 @komodo.constructor
@@ -123,11 +172,19 @@ c = Config("db.prod.com")
 print(c.url)  # postgresql://db.prod.com:5432
 ```
 
+**Variantes:**
+
+| Decorator | Comportamento |
+|---|---|
+| `@komodo.constructor` / `@komodo.all_args_constructor` | Todos os campos anotados como parâmetros |
+| `@komodo.required_args_constructor` | Apenas campos sem default como parâmetros |
+| `@komodo.no_args_constructor` | `__init__` sem parâmetros (usa defaults) |
+
 ---
 
 ### @komodo.data
 
-Atalho que aplica `constructor` + `to_str` + `eq` numa só anotação. O equivalente mais próximo ao `@Data` do Lombok.
+Atalho que aplica `constructor` + `to_str` + `eq` numa só anotação.
 
 Gera: `__init__`, `__repr__`, `__str__`, `__eq__`, `__hash__`.
 
@@ -146,13 +203,13 @@ points = {p1, p2}   # funciona como chave de set/dict
 print(len(points))  # 1
 ```
 
+Marca a classe com `__komodo_meta__ = {'data', 'all_constructor', 'to_str', 'eq'}`.
+
 ---
 
 ### @komodo.value
 
-Cria um **objeto de valor imutável** — equivalente ao `@Value` do Lombok ou a uma `NamedTuple` com semântica de classe normal.
-
-Aplica: `data` + `immutable`. Qualquer tentativa de mutação após construção levanta `AttributeError`.
+Cria um **objeto de valor imutável**. Aplica: `data` + `immutable`. Qualquer mutação após construção levanta `AttributeError`.
 
 ```python
 @komodo.value
@@ -161,364 +218,313 @@ class Money:
     currency: str
 
 m = Money(9.99, "USD")
-print(m)               # Money(amount=9.99, currency='USD')
+m.amount = 0.0  # AttributeError: Money is immutable — cannot modify attribute 'amount'
 
-m.amount = 0.0         # AttributeError: Money is immutable — cannot set attribute 'amount'
+m2 = m.copy_with(amount=19.99)  # funciona, retorna nova instância
 ```
 
-Útil para DTOs, value objects de domínio, chaves de cache.
+**Internamente:**
+- No final do `__init__`, injeta `object.__setattr__(self, "_frozen", True)`
+- Sobrescreve `__setattr__` e `__delattr__` para bloquear mutações após congelamento
+
+---
+
+### @komodo.record
+
+Gerador mestre que aplica num só passo: `constructor` + `repr` + `eq/hash` + `immutable` + `to_dict` + `from_dict` + `to_json` + `from_json`.
+
+Ideal para modelos de dados completos:
+
+```python
+@komodo.record
+class Person:
+    name: str
+    age: int
+
+p = Person("Alice", 30)
+print(p)                        # Person(name='Alice', age=30)
+print(p.to_dict())              # {'name': 'Alice', 'age': 30}
+p2 = Person.from_dict(p.to_dict())
+assert p == p2
+
+# Serialização JSON
+json_str = p.to_json()          # '{"name": "Alice", "age": 30}'
+p3 = Person.from_json(json_str)
+
+p.name = "Bob"                  # AttributeError: Person is immutable
+```
+
+Marks `__komodo_meta__` com todas as features acumuladas.
 
 ---
 
 ### @komodo.builder
 
-Adiciona uma inner class `.Builder` com API fluente. Cada campo anotado ganha um método `with_<campo>()`. O método `.build()` valida campos obrigatórios e constrói a instância.
-
-Equivalente Lombok: `@Builder`
+Injeta uma inner class `Builder` com API fluente na AST da classe. Cada campo ganha um método `with_<campo>()`. O `.build()` valida campos obrigatórios.
 
 ```python
 @komodo.builder
+@komodo.constructor
 class HttpRequest:
     url: str
     method: str = "GET"
     timeout: float = 30.0
-    headers: dict = None
 
 req = (
-    HttpRequest.Builder()
-        .with_url("https://api.example.com/users")
+    HttpRequest.builder()
+        .with_url("https://api.example.com")
         .with_method("POST")
         .with_timeout(10.0)
-        .with_headers({"Authorization": "Bearer token"})
         .build()
 )
 
-# Também disponível via factory method:
-req2 = HttpRequest.builder().with_url("https://example.com").build()
-```
-
-Se um campo obrigatório não for setado, `.build()` levanta `ValueError`:
-
-```python
-HttpRequest.Builder().build()
+# Campo obrigatório faltando:
+HttpRequest.builder().build()
 # ValueError: HttpRequest.Builder: required field 'url' was not set
 ```
+
+**Inner class Builder:**
+- `Builder.__init__()`: inicializa campos com defaults ou `_UNSET`
+- `with_<field>(value)`: setter fluente que retorna `self`
+- `build()`: cria a instância, validando campos obrigatórios
+
+---
+
+### @komodo.singular()
+
+Usado em conjunto com `@komodo.builder`. Gera um método singular (append) para campos do tipo lista.
+
+```python
+@komodo.builder
+@komodo.singular("members")
+@komodo.record
+class Team:
+    name: str
+    members: list[str]
+
+team = (
+    Team.builder()
+        .with_name("Guardians")
+        .member("Alice")
+        .member("Bob")
+        .member("Charlie")
+        .build()
+)
+
+print(team.members)  # ['Alice', 'Bob', 'Charlie']
+```
+
+**O que gera:**
+- Método singular `member(item)` que faz `.append(item)` e retorna `self`
+- Mantém também o setter regular `members(value)`
 
 ---
 
 ### @komodo.immutable
 
-Previne qualquer mutação de atributo após o `__init__` completar. Usa uma flag interna `_frozen` para distinguir a fase de construção da fase de uso.
-
-Pode ser aplicado a qualquer classe que já tenha um `__init__` próprio ou gerado.
+Torna a classe imutável após construção. Qualquer tentativa de mudar atributos levanta `AttributeError`.
 
 ```python
 @komodo.immutable
-@komodo.constructor
+@komodo.data
 class Coordinate:
     lat: float
     lon: float
 
-coord = Coordinate(38.7, -9.14)
-coord.lat = 0.0  # AttributeError: Coordinate is immutable — cannot set attribute 'lat'
-del coord.lon    # AttributeError: Coordinate is immutable — cannot delete attribute 'lon'
+c = Coordinate(40.7128, -74.0060)
+c.lat = 0.0  # AttributeError: Coordinate is immutable — cannot modify attribute 'lat'
 ```
 
-> **Nota**: `@komodo.value` já inclui `@komodo.immutable`. Usa `@komodo.immutable` diretamente quando queres imutabilidade sem os outros features de `@komodo.value`.
+**Mecanismo:**
+- Injeta no fim do `__init__`: `object.__setattr__(self, "_frozen", True)`
+- Sobrescreve `__setattr__` e `__delattr__` para verificar `self._frozen`
 
 ---
 
 ### @komodo.logger
 
-Injeta um atributo `logger` na classe, pronto para usar como `self.logger` ou `ClassName.logger`. Usa o módulo `logging` da stdlib, com o nome `módulo.NomeDaClasse`.
-
-Equivalente Lombok: `@Slf4j`
+Injeta um logger nativo da stdlib `logging` como atributo de classe.
 
 ```python
 @komodo.logger
-class AuthService:
-    def authenticate(self, user: str) -> bool:
-        self.logger.info("Authenticating user: %s", user)
-        # ...
-        self.logger.warning("Failed attempt for: %s", user)
-        return False
+@komodo.data
+class Application:
+    name: str
+    version: str
 
-svc = AuthService()
-svc.authenticate("alice")
-# INFO:__main__.AuthService:Authenticating user: alice
-# WARNING:__main__.AuthService:Failed attempt for: alice
+app = Application("MyApp", "1.0.0")
+Application.logger.info("Starting application")
+Application.logger.warning(f"App {app.name} v{app.version}")
 ```
 
-O logger é configurado pelo sistema de logging padrão do Python — aplica handlers e formatters normalmente.
+**Gerado:**
+```python
+logger = logging.getLogger(f"{__name__}.Application")
+```
+
+O nome do logger é `<module_name>.<ClassName>`.
 
 ---
 
 ### @komodo.non_null
 
-Envolve o `__init__` para levantar `ValueError` se qualquer argumento for `None`, tanto posicionais como keyword.
-
-Equivalente Lombok: `@NonNull` nos parâmetros do construtor.
+Valida que nenhum campo obrigatório é `None`. Levanta `ValueError` no `__init__` se algum campo for `None`.
 
 ```python
 @komodo.non_null
 @komodo.constructor
-class DatabaseConfig:
-    host: str
-    password: str
+class User:
+    name: str
+    email: str
+    age: int = 18
 
-DatabaseConfig("localhost", "secret")   # OK
-DatabaseConfig(None, "secret")          # ValueError: DatabaseConfig: field 'host' must not be None
-DatabaseConfig("localhost", None)       # ValueError: DatabaseConfig: field 'password' must not be None
+User("Alice", None, 25)  
+# ValueError: User: field 'email' must not be None
 ```
 
-> Combina bem com `@komodo.validated` — `non_null` trata especificamente `None`, enquanto `validated` trata tipos incorretos.
-
----
-
-### @komodo.singleton
-
-Garante que apenas uma instância da classe existe em toda a aplicação. A instância é criada lazily na primeira chamada e reutilizada nas seguintes.
-
-```python
-@komodo.singleton
-class AppConfig:
-    def __init__(self):
-        self.debug = False
-        self.version = "1.0.0"
-
-a = AppConfig()
-b = AppConfig()
-assert a is b  # True — mesma instância
-```
-
-> **Atenção com composição**: `@komodo.singleton` e `@komodo.constructor` funcionam juntos, mas `@komodo.singleton` deve ser o decorator mais externo (aplicado por último, ou seja, o primeiro na lista):
->
-> ```python
-> @komodo.singleton        # externo — aplicado último
-> @komodo.constructor      # interno — aplicado primeiro
-> class Registry:
->     name: str = "default"
-> ```
-
----
-
-### @komodo.copyable
-
-Adiciona dois métodos à classe:
-
-- `.copy()` — retorna uma cópia rasa (shallow copy) da instância
-- `.copy_with(**overrides)` — retorna uma nova instância com campos selecionados substituídos
-
-Inspirado no `copy()` das `data class` do Kotlin e no `@With` do Lombok.
-
-```python
-@komodo.copyable
-@komodo.data
-class ServerConfig:
-    host: str = "localhost"
-    port: int = 8080
-    ssl: bool = False
-
-base = ServerConfig()
-prod = base.copy_with(host="api.production.com", ssl=True)
-staging = base.copy_with(host="api.staging.com", port=8443)
-
-print(base)     # ServerConfig(host='localhost', port=8080, ssl=False)
-print(prod)     # ServerConfig(host='api.production.com', port=8080, ssl=True)
-print(staging)  # ServerConfig(host='api.staging.com', port=8443, ssl=False)
-```
+**Nota:** Funciona apenas com campos obrigatórios (sem default). Insere checks no início do `__init__`.
 
 ---
 
 ### @komodo.validated
 
-Aplica type-checking em runtime sobre os argumentos do `__init__` com base nas `__annotations__`. Levanta `TypeError` com mensagem descritiva se um valor não corresponder ao tipo declarado.
-
-Compatível com `from __future__ import annotations` (PEP 563) — usa `typing.get_type_hints()` internamente para resolver anotações em string.
+Valida tipos básicos em tempo de construção. Levanta `TypeError` se o tipo não corresponder.
 
 ```python
 @komodo.validated
 @komodo.constructor
-class Rectangle:
-    width: float
-    height: float
+class Product:
+    name: str
+    price: float
+    stock: int
 
-Rectangle(10.0, 5.0)       # OK
-Rectangle("largo", 5.0)    # TypeError: Rectangle: field 'width' expected float, got str
-Rectangle(10, 5.0)         # OK — int é subclasse de... na verdade não, mas int não é float
-                            # Logo: TypeError: field 'width' expected float, got int
+Product("Widget", "9.99", 100)
+# TypeError: Product: field 'price' expected float
 ```
 
-> **Nota sobre `int` vs `float`**: Python não considera `int` subclasse de `float` para `isinstance()`, embora suporte a conversão implícita. Se precisas aceitar ambos, usa `Union[int, float]` ou `numbers.Real`.
+**Suporta tipos simples:**
+- `str`, `int`, `float`, `bool`
+- Tipos complexos (`list[str]`, `Optional[int]`) são ignorados (requer análise mais elaborada)
 
 ---
 
-### @komodo.observable
+### @komodo.copyable
 
-Intercepta `__setattr__` para notificar callbacks registados sempre que um campo muda de valor. Implementa o padrão Observer sem herança.
-
-```python
-@komodo.observable
-@komodo.constructor
-class UserSettings:
-    theme: str = "dark"
-    language: str = "pt"
-    notifications: bool = True
-
-settings = UserSettings()
-
-# Registar listener
-settings.on_change(lambda field, old, new: print(f"  {field}: {old!r} → {new!r}"))
-
-settings.theme = "light"
-# theme: 'dark' → 'light'
-
-settings.language = "en"
-# language: 'pt' → 'en'
-
-# Remover listener
-def my_callback(f, o, n): ...
-settings.on_change(my_callback)
-settings.off_change(my_callback)
-```
-
-A assinatura do callback é sempre `(field_name: str, old_value: Any, new_value: Any) -> None`.
-
-Campos privados (prefixo `_`) não disparam notificações.
-
----
-
-### @komodo.sealed
-
-Impede qualquer subclasse. Levanta `TypeError` em tempo de definição da subclasse.
-
-Equivalente: `sealed` do Java 17+ / `final` do Kotlin.
+Adiciona `copy()` e `copy_with(**overrides)` para clonagem superficial e com modificações.
 
 ```python
-@komodo.sealed
-class AuthToken:
-    def __init__(self, value: str):
-        self._value = value
+@komodo.copyable
+@komodo.data
+class Point:
+    x: float
+    y: float
 
-class JwtToken(AuthToken):   # TypeError: AuthToken is sealed and cannot be subclassed.
-    pass
+p1 = Point(1.0, 2.0)
+p2 = p1.copy()           # clone superficial
+p3 = p1.copy_with(x=5.0) # clone com mudança
+
+print(p1 == p2)          # True
+print(p2 == p3)          # False
+print(p3)                # Point(x=5.0, y=2.0)
 ```
 
----
-
-### @komodo.deprecated
-
-Emite `DeprecationWarning` em cada instanciação da classe. Aceita dois modos:
-
-```python
-# Modo simples — sem argumentos
-@komodo.deprecated
-class OldApiClient:
-    pass
-
-# Modo com mensagem — com argumentos keyword
-@komodo.deprecated(reason="Use NewApiClient instead.", since="2.0")
-class LegacyApiClient:
-    pass
-
-import warnings
-with warnings.catch_warnings(record=True) as w:
-    warnings.simplefilter("always")
-    LegacyApiClient()
-    print(w[0].message)
-# LegacyApiClient is deprecated since v2.0. Use NewApiClient instead.
-```
-
-A mensagem fica também disponível em `LegacyApiClient.__deprecated__`.
+**Métodos gerados:**
+- `copy()`: retorna `copy.copy(self)`
+- `copy_with(**overrides)`: retorna nova instância com campos sobrescrevados
 
 ---
 
 ### @komodo.accessors()
 
-Gera Python `property` getters e setters para todos os campos anotados. Os valores são armazenados internamente como `_campo`.
-
-Equivalente Lombok: `@Getter` / `@Setter`
+Gera getters, setters e withers (métodos tipo `.with_field(value)`) para campos.
 
 ```python
-@komodo.accessors()          # readonly=False (default) — getter + setter
-class Person:
-    name: str
-    age: int
-
-p = Person.__new__(Person)
-object.__setattr__(p, "_name", "Alice")
-object.__setattr__(p, "_age", 30)
-
-print(p.name)   # Alice
-p.name = "Bob"  # setter
-print(p.name)   # Bob
-
-# Só leitura:
-@komodo.accessors(readonly=True)
-class ImmutableRecord:
-    id: int
-    value: str
-```
-
----
-
-### @komodo.delegate()
-
-Delega métodos de um objeto interno para a classe exterior. Os métodos do delegado ficam acessíveis diretamente na instância.
-
-Equivalente Lombok: `@Delegate`
-
-```python
-class _EmailSender:
-    def send(self, to: str, subject: str) -> None:
-        print(f"Sending '{subject}' to {to}")
-
-    def validate(self, email: str) -> bool:
-        return "@" in email
-
-@komodo.delegate("_sender", methods=["send", "validate"])
-class NotificationService:
-    def __init__(self):
-        self._sender = _EmailSender()
-
-svc = NotificationService()
-svc.send("user@example.com", "Welcome!")  # Delegado para _sender.send()
-print(svc.validate("bad-email"))          # False
-```
-
-Se `methods=None` (omitido), todos os métodos públicos do delegado são proxied.
-
----
-
-### @komodo.mixin()
-
-Injeta mixin classes no MRO da classe em tempo de definição. Útil quando as mixins são determinadas programaticamente ou quando queres evitar listá-las nas bases.
-
-```python
-class LogMixin:
-    def log(self, msg: str) -> None:
-        print(f"[{self.__class__.__name__}] {msg}")
-
-class SerializeMixin:
-    def to_dict(self) -> dict:
-        return vars(self)
-
-@komodo.mixin(LogMixin, SerializeMixin)
+@komodo.accessors(getter=True, setter=True, withers=False)
 @komodo.data
-class Product:
-    name: str
-    price: float
+class Temperature:
+    celsius: float
 
-p = Product("Widget", 9.99)
-p.log("Product created")      # [Product] Product created
-print(p.to_dict())             # {'name': 'Widget', 'price': 9.99}
+t = Temperature(25.0)
+print(t.celsius)        # getter: 25.0
+t.celsius = 30.0        # setter
+t2 = t.with_celsius(35.0)  # wither (quando ativado)
 ```
+
+**Parâmetros:**
+- `fluent=False`: se `True`, método único que funciona como getter/setter conforme argumentos
+- `getter=True`: gera `@property` para leitura
+- `setter=True`: gera `@<field>.setter` para escrita
+- `withers=False`: gera `with_<field>(value)` que retorna `self` (para chaining)
+
+**Variantes rápidas:**
+- `@komodo.getter`: apenas getters
+- `@komodo.setter`: apenas setters
+- `@komodo.withers`: apenas withers
+
+---
+
+### @komodo.to_dict / @komodo.from_dict / @komodo.json
+
+Serialização bidirecional para dict e JSON.
+
+```python
+@komodo.data
+class Event:
+    name: str
+    timestamp: int
+
+e = Event("click", 1717300000)
+
+# to_dict()
+d = e.to_dict()                  # {'name': 'click', 'timestamp': 1717300000}
+
+# from_dict() — classmethod
+e2 = Event.from_dict(d)
+assert e == e2
+
+# to_json()
+json_str = e.to_json()           # '{"name": "click", "timestamp": 1717300000}'
+
+# from_json() — classmethod
+e3 = Event.from_json(json_str)
+assert e == e3
+```
+
+**Métodos:**
+- `to_dict() -> dict`: retorna `{field: value, ...}`
+- `from_dict(data: dict) -> cls`: classmethod que faz `cls(**data)`
+- `to_json() -> str`: retorna `json.dumps(self.to_dict())`
+- `from_json(data: str) -> cls`: classmethod que faz `cls.from_dict(json.loads(data))`
+
+---
+
+### @komodo.equals_and_hashcode / @komodo.to_string
+
+Aliases para `@komodo.eq` e `@komodo.to_str`, inspirados em Lombok:
+
+```python
+@komodo.equals_and_hashcode
+@komodo.to_string
+@komodo.constructor
+class Item:
+    id: int
+    name: str
+
+i1 = Item(1, "Widget")
+i2 = Item(1, "Widget")
+
+print(i1)           # Item(id=1, name='Widget')
+print(i1 == i2)     # True
+print(hash(i1) == hash(i2))  # True
+```
+
+Equivalem exatamente a `@komodo.eq` e `@komodo.to_str`.
 
 ---
 
 ## Design by Contract
 
-Inspirado na anotação `@Contract` do IntelliJ IDEA e no modelo Hoare-triple (pré-condição / pós-condição / invariante) de Eiffel.
+Inspirado no modelo Hoare-triple (pré-condição / pós-condição / invariante).
 
 ```python
 from nestifypy.komodo import contract
@@ -527,7 +533,7 @@ from nestifypy.komodo.contract import requires, ensures, invariant, ContractViol
 
 ### @contract
 
-Decorator que aplica condições declarativas a funções e métodos. Aceita qualquer combinação de `requires()`, `ensures()` e `invariant()`.
+Aplica condições declarativas a funções e métodos.
 
 ```python
 @contract(
@@ -537,57 +543,52 @@ Decorator que aplica condições declarativas a funções e métodos. Aceita qua
 def safe_divide(x: float, y: float) -> float:
     return abs(x / y)
 
-safe_divide(10.0, 2.0)   # OK → 5.0
-safe_divide(10.0, 0.0)   # ContractViolationError: precondition violated in 'safe_divide': divisor must not be zero
+safe_divide(10.0, 0.0)
+# ContractViolationError: [komodo.contract] precondition violated in 'safe_divide': 
+#                         divisor must not be zero
 ```
 
-Em caso de violação, `ContractViolationError` é levantado com:
-- `error.kind` — `"precondition"`, `"postcondition"` ou `"invariant"`
-- `error.func` — nome qualificado da função
-- `error.message` — mensagem declarada
+**Ordem de execução:**
+1. Pré-condições (`requires`)
+2. Invariantes (antes) — `invariant`
+3. Execução da função
+4. Pós-condições (`ensures`)
+5. Invariantes (depois) — `invariant`
 
----
+Qualquer violação levanta `ContractViolationError` e interrompe a execução.
 
 ### requires()
 
-Declara uma **pré-condição** — verificada *antes* da execução. O predicado recebe os mesmos argumentos que a função decorada.
+**Pré-condição** — verificada antes da execução. Recebe os mesmos argumentos que a função.
 
 ```python
 @contract(
-    requires(lambda items: len(items) > 0, "list must not be empty"),
-    requires(lambda items: all(isinstance(i, int) for i in items), "all items must be int"),
+    requires(lambda x: x >= 0, "x must be non-negative"),
 )
-def average(items: list) -> float:
-    return sum(items) / len(items)
+def sqrt(x: float) -> float:
+    return x ** 0.5
 
-average([1, 2, 3])   # OK → 2.0
-average([])          # ContractViolationError: precondition — list must not be empty
+sqrt(-1.0)
+# ContractViolationError: precondition violated in 'sqrt': x must be non-negative
 ```
-
----
 
 ### ensures()
 
-Declara uma **pós-condição** — verificada *depois* da execução. O predicado recebe o **valor de retorno** como único argumento.
+**Pós-condição** — verificada após a execução. Recebe o valor de retorno.
 
 ```python
 @contract(
-    ensures(lambda r: isinstance(r, str), "must return a string"),
-    ensures(lambda r: len(r) > 0, "returned string must not be empty"),
+    ensures(lambda result: result > 0, "absolute value must be positive"),
 )
-def get_username(user_id: int) -> str:
-    return f"user_{user_id}"
-
-get_username(42)   # OK → "user_42"
+def absolute(x: float) -> float:
+    if x == 0.0:
+        return 0.1  # violaria se x era 0
+    return abs(x)
 ```
-
----
 
 ### invariant()
 
-Declara um **invariante** — verificado *antes e depois* da execução. Útil para garantir que o estado do objeto se mantém consistente.
-
-O predicado pode receber `self` (para métodos) ou os argumentos completos:
+**Invariante** — verificado antes e depois. Útil para manter estado consistente em métodos:
 
 ```python
 class BankAccount:
@@ -600,112 +601,171 @@ class BankAccount:
     def withdraw(self, amount: float) -> None:
         self.balance -= amount
 
-    @contract(
-        requires(lambda self, amount: amount > 0, "deposit must be positive"),
-        invariant(lambda self: self.balance >= 0, "balance must never be negative"),
-    )
-    def deposit(self, amount: float) -> None:
-        self.balance += amount
-
 acct = BankAccount(100.0)
-acct.deposit(50.0)     # OK
-acct.withdraw(30.0)    # OK
-acct.withdraw(200.0)   # ContractViolationError: invariant violated (after call)
+acct.withdraw(200.0)  
+# ContractViolationError: invariant violated in 'withdraw' (after call): 
+#                         balance must never be negative
 ```
+
+### ContractViolationError
+
+Exceção levantada quando qualquer contrato é violado.
+
+```python
+from nestifypy.komodo.contract import ContractViolationError
+
+try:
+    safe_divide(10.0, 0.0)
+except ContractViolationError as e:
+    print(e.kind)       # "precondition"
+    print(e.func)       # "safe_divide"
+    print(e.message)    # "divisor must not be zero"
+    print(str(e))       # "[komodo.contract] precondition violated in ..."
+```
+
+**Atributos:**
+- `kind`: um de `"precondition"`, `"postcondition"`, `"invariant"`
+- `func`: nome qualificado da função (`__qualname__`)
+- `message`: mensagem do contrato
 
 ---
 
 ## KomodoInspector
 
-Ferramenta de introspecção em runtime para classes decoradas com `komodo`. Útil para debugging, geração de documentação e tooling.
+Ferramenta de introspecção para classes decoradas com `komodo`. Permite inspecionar quais features foram aplicadas, listar campos, e gerar resumos legíveis.
 
 ```python
 from nestifypy.komodo import KomodoInspector
 
 @komodo.logger
-@komodo.copyable
 @komodo.builder
 @komodo.data
 class Order:
     id: int
     product: str
     quantity: int = 1
-    status: str = "pending"
 
 info = KomodoInspector(Order)
-
-print(info.features)
-# {'data', 'constructor', 'to_str', 'eq', 'builder', 'copyable', 'logger'}
-
-print(info.fields)
-# {'id': <class 'int'>, 'product': <class 'str'>, 'quantity': <class 'int'>, 'status': <class 'str'>}
-
-print(info.defaults)
-# {'quantity': 1, 'status': 'pending'}
-
-print(info.generated_methods)
-# ['__init__', '__repr__', '__str__', '__eq__', '__hash__', 'copy', 'copy_with', 'Builder', 'builder', 'logger']
-
-print(info.has_builder)    # True
-print(info.is_immutable)   # False
-print(info.is_singleton)   # False
 ```
 
-### summary()
+### Propriedades
 
-Imprime um resumo formatado de toda a metadata komodo:
+**`features`** → `set[str]`  
+Conjunto de features komodo aplicadas à classe.
+
+```python
+print(info.features)
+# {'data', 'all_constructor', 'to_str', 'eq', 'builder', 'logger'}
+```
+
+**`fields`** → `dict[str, type]`  
+Campos anotados diretamente na classe (exclui campos privados).
+
+```python
+print(info.fields)
+# {'id': <class 'int'>, 'product': <class 'str'>, 'quantity': <class 'int'>}
+```
+
+**`defaults`** → `dict[str, Any]`  
+Campos que possuem valores padrão no escopo da classe.
+
+```python
+print(info.defaults)
+# {'quantity': 1}
+```
+
+**`generated_methods`** → `list[str]`  
+Lista de métodos dunder e helpers conhecidos que foram adicionados por komodo.
+
+```python
+print(info.generated_methods)
+# ['__init__', '__repr__', '__str__', '__eq__', '__hash__', 'Builder', 'builder', 'logger']
+```
+
+**`has_builder`** → `bool`  
+`True` se `@komodo.builder` foi aplicado.
+
+```python
+print(info.has_builder)  # True
+```
+
+**`is_immutable`** → `bool`  
+`True` se `@komodo.immutable` ou `@komodo.value` foi aplicada.
+
+```python
+print(info.is_immutable)  # False (a menos que @value tenha sido usado)
+```
+
+**`is_record`** → `bool`  
+`True` se `@komodo.record` foi aplicado.
+
+```python
+print(info.is_record)  # False
+```
+
+### Métodos
+
+**`contract_info(method_name: str) -> dict | None`**  
+Retorna metadados de contrato para um método decorado com `@contract`.
+
+```python
+@komodo.data
+class Calculator:
+    @contract(requires(lambda x: x >= 0, "x must be non-negative"))
+    def sqrt(self, x: float) -> float:
+        return x ** 0.5
+
+info = KomodoInspector(Calculator)
+contracts = info.contract_info("sqrt")
+# {'preconditions': [...], 'postconditions': [...], 'invariants': [...]}
+```
+
+**`summary() -> str`**  
+Retorna um resumo formatado legível em tabela ASCII.
 
 ```python
 print(info.summary())
 ```
 
+Saída exemplo:
+
 ```
-┌──────────────────────────────────────────────────┐
-│  komodo.inspect  →  Order                          │
-├──────────────────────────────────────────────────┤
-│  Features   : builder, constructor, copyable...  │
-│  Fields     : id: int, product: str, ...         │
-│  Defaults   : quantity=1, status='pending'       │
-│  Generated  : __init__, __repr__, copy, ...      │
-│  Immutable  : No                                 │
-│  Singleton  : No                                 │
-│  Has Builder: Yes                                │
-└──────────────────────────────────────────────────┘
-```
-
-### contract_info()
-
-Retorna a metadata de contrato de um método específico:
-
-```python
-info = KomodoInspector(BankAccount)
-contracts = info.contract_info("withdraw")
-# {
-#   'preconditions': [...],
-#   'postconditions': [...],
-#   'invariants': [(predicate, 'balance must never be negative')]
-# }
+┌──────────────────────────────────────────────┐
+│  komodo.inspect  →  Order                    │
+├──────────────────────────────────────────────┤
+│  Features   : builder, data, logger, ...     │
+│  Fields     : id: int, product: str, ...     │
+│  Defaults   : quantity=1                     │
+│  Generated  : __init__, __repr__, ...        │
+│  Immutable  : No                             │
+│  Record     : No                             │
+│  Has Builder: Yes                            │
+└──────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Composição de Decorators
 
-Todos os decorators `komodo` são composáveis. A ordem segue a regra normal do Python: **os decorators são aplicados de baixo para cima** (o decorator mais próximo da classe é aplicado primeiro).
+Todos os decorators são composáveis. A ordem segue a regra do Python: **de baixo para cima** (bottom-up), ou seja, o decorator mais próximo ao nome da classe é aplicado primeiro.
 
 **Ordem recomendada** (de cima para baixo na definição):
 
 ```python
-@komodo.singleton          # 7. aplicado por último  (mais externo)
-@komodo.logger             # 6.
-@komodo.deprecated(...)    # 5.
+@komodo.logger             # 5. último a aplicar
 @komodo.copyable           # 4.
-@komodo.non_null           # 3.
+@komodo.builder            # 3.
 @komodo.validated          # 2.
-@komodo.data               # 1. aplicado primeiro (mais interno, modifica __init__ base)
+@komodo.data               # 1. aplicado primeiro (gera __init__ base)
 class MyClass:
     field: type
 ```
+
+**Por quê essa ordem?**
+- `@komodo.data` deve ser base — gera `__init__`, `__repr__`, etc.
+- `@komodo.validated` valida no `__init__`, então vem logo após
+- `@komodo.builder` e `@komodo.copyable` operam sobre a estrutura gerada
+- `@komodo.logger` é independente e vem no topo
 
 ### Exemplos práticos
 
@@ -723,160 +783,293 @@ class Product:
 
 p = Product(1, "Widget", 9.99)
 p2 = p.copy_with(price=7.99)
-Product.logger.info("Price updated: %s → %s", p.price, p2.price)
+Product.logger.info("Price updated")
 ```
 
-**DTO com construção fluente e validação:**
+**Record com builder fluente e singulares:**
 
 ```python
 @komodo.builder
-@komodo.validated
-@komodo.constructor
-class CreateUserRequest:
-    username: str
-    email: str
-    role: str = "viewer"
+@komodo.singular("tags")
+@komodo.record
+class Article:
+    title: str
+    author: str
+    tags: list[str]
 
-req = (
-    CreateUserRequest.Builder()
-        .with_username("alice")
-        .with_email("alice@example.com")
-        .with_role("admin")
+article = (
+    Article.builder()
+        .with_title("AST Metaprogramming in Python")
+        .with_author("Alice")
+        .tag("python")
+        .tag("ast")
+        .tag("metaprogramming")
         .build()
 )
+
+print(article.to_json())
+# {"title": "AST Metaprogramming in Python", "author": "Alice", 
+#  "tags": ["python", "ast", "metaprogramming"]}
 ```
 
-**Value object imutável:**
+**Value object imutável com contrato:**
 
 ```python
-@komodo.value   # = @komodo.data + @komodo.immutable
+@komodo.value
 class Currency:
-    code: str    # "USD", "EUR", ...
-    symbol: str  # "$", "€", ...
+    code: str
+    symbol: str
+    
+    @contract(
+        requires(lambda self: len(self.code) == 3, "code must be 3 chars"),
+    )
+    def __post_init__(self):
+        pass
 
 USD = Currency("USD", "$")
 EUR = Currency("EUR", "€")
-# Imutáveis, hashable, com __eq__ e __repr__
+
+USD.code = "GBP"  # AttributeError: Currency is immutable
 ```
 
-**Serviço com lifecycle:**
+**Record com validação e builder:**
 
 ```python
-@komodo.singleton
-@komodo.logger
-@komodo.constructor
-class DatabasePool:
-    host: str
-    port: int = 5432
-    max_connections: int = 10
+@komodo.builder
+@komodo.non_null
+@komodo.record
+class User:
+    username: str
+    email: str
+    age: int = 18
 
-    def __post_init__(self):
-        self.logger.info("Pool initialized: %s:%d", self.host, self.port)
-        self._connections = []
-```
+user = (
+    User.builder()
+        .with_username("alice")
+        .with_email("alice@example.com")
+        .with_age(25)
+        .build()
+)
 
-**Contrato em método crítico:**
-
-```python
-from nestifypy.komodo import contract
-from nestifypy.komodo.contract import requires, ensures
-
-@komodo.logger
-@komodo.constructor
-class PaymentService:
-    currency: str = "EUR"
-
-    @contract(
-        requires(lambda self, amount: amount > 0, "amount must be positive"),
-        requires(lambda self, amount: amount <= 10_000, "amount exceeds single-transaction limit"),
-        ensures(lambda result: result.get("status") == "ok", "payment must succeed"),
-    )
-    def process(self, amount: float) -> dict:
-        self.logger.info("Processing %.2f %s", amount, self.currency)
-        return {"status": "ok", "amount": amount}
+# Falha: campo obrigatório faltando
+User.builder().with_email("bob@example.com").build()
+# ValueError: User.Builder: required field 'username' was not set
 ```
 
 ---
 
 ## Comparação com Lombok
 
-| Lombok (Java)              | komodo (Python)                  | Notas                                          |
-|----------------------------|--------------------------------|------------------------------------------------|
-| `@Data`                    | `@komodo.data`                   | Gera `__init__`, `__repr__`, `__eq__`, `__hash__` |
-| `@Value`                   | `@komodo.value`                  | Imutável + todos os métodos de `@data`         |
-| `@Builder`                 | `@komodo.builder`                | Inner class `.Builder` com API fluente         |
-| `@AllArgsConstructor`      | `@komodo.constructor`            | `__init__` gerado por anotações                |
-| `@ToString`                | `@komodo.to_str` (via `@data`)   | `__repr__` e `__str__`                         |
-| `@EqualsAndHashCode`       | `@komodo.eq` (via `@data`)       | `__eq__` + `__hash__`                          |
-| `@Slf4j`                   | `@komodo.logger`                 | Logger injetado via stdlib `logging`           |
-| `@NonNull`                 | `@komodo.non_null`               | Valida `None` em todos os args do `__init__`   |
-| `@With`                    | `@komodo.copyable`               | `.copy()` e `.copy_with()`                     |
-| `@Delegate`                | `@komodo.delegate(field)`        | Proxy de métodos para objeto interno           |
-| `@Singular`                | —                              | Não implementado (idioma menos relevante em Python) |
-| `sealed` (Java 17)         | `@komodo.sealed`                 | Bloqueia subclassing                           |
-| IntelliJ `@Contract`       | `@contract(requires, ensures)` | Pre/pós condições declarativas                 |
-| IntelliJ `@NotNull`        | `@komodo.non_null`               | Validação de nulidade                          |
-| IntelliJ `@Immutable`      | `@komodo.immutable` / `@komodo.value` | Freeze após construção                      |
+| Lombok (Java) | komodo (Python) | Notas |
+|---|---|---|
+| `@Data` | `@komodo.data` | `__init__`, `__repr__`, `__eq__`, `__hash__` |
+| `@Value` | `@komodo.value` | Imutável + todos os métodos de `@data` |
+| `@Builder` | `@komodo.builder` | Inner class `Builder` com API fluente |
+| `@Singular` | `@komodo.singular("field")` | Append individual em campos lista |
+| `@AllArgsConstructor` | `@komodo.constructor` | `__init__` gerado por anotações |
+| `@RequiredArgsConstructor` | `@komodo.required_args_constructor` | Apenas campos obrigatórios |
+| `@NoArgsConstructor` | `@komodo.no_args_constructor` | `__init__` sem argumentos |
+| `@ToString` | `@komodo.to_string` | `__repr__` e `__str__` |
+| `@EqualsAndHashCode` | `@komodo.equals_and_hashcode` | `__eq__` + `__hash__` |
+| `@Slf4j` | `@komodo.logger` | Logger via stdlib `logging` |
+| `@NonNull` | `@komodo.non_null` | Valida `None` em todos os args |
+| `@With` | `@komodo.copyable` / `@komodo.withers` | `.copy_with()` e `.with_field()` |
+| `@Getter` / `@Setter` | `@komodo.getter` / `@komodo.setter` | Python `@property` nativo |
+| `@Accessors` | `@komodo.accessors()` | Getters, setters, withers configuráveis |
+| `sealed` (Java 17) | Movido para `nestifypy.patterns` | — |
+| IntelliJ `@Contract` | `@contract(requires, ensures, invariant)` | Pré/pós condições + invariantes |
+| — | `@komodo.record` | All-in-one: data + immutable + serialization |
+| — | `@komodo.copyable` | Clonagem superficial com sobrescrita |
+| — | `@komodo.validated` | Type checking automático |
+
+---
+
+## Arquitectura Interna
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    @komodo.decorator                     │
+│                         ↓                                │
+│   ┌─────────────────────────────────────────────────┐   │
+│   │              ast_engine.py                       │   │
+│   │  1. apply_generator(cls, generator)             │   │
+│   │  2. Recupera cls.__komodo_ast__ se existir      │   │
+│   │  3. Senão: inspect.getsource(cls) → ast.parse() │   │
+│   │  4. Strip @komodo.* decorators da AST           │   │
+│   │  5. generator(class_def, cls)  ← plugin         │   │
+│   │  6. inject_logger_imports(tree)  ← se logger    │   │
+│   │  7. ast.fix_missing_locations(tree)             │   │
+│   │  8. compile(tree, "<komodo_ast>", "exec")       │   │
+│   │  9. exec(code, module_namespace)                │   │
+│   │ 10. cls.__komodo_ast__ = tree  (para stacking)  │   │
+│   │ 11. cls.__komodo_meta__ = features              │   │
+│   └─────────────────────────────────────────────────┘   │
+│                         ↓                                │
+│   ┌─────────────────────────────────────────────────┐   │
+│   │          ast_generators/*.py                     │   │
+│   │  • constructor.py   → __init__ (modes: all/req) │   │
+│   │  • repr.py          → __repr__, __str__         │   │
+│   │  • eq_hash.py       → __eq__, __hash__          │   │
+│   │  • immutable.py     → __setattr__, __delattr__  │   │
+│   │  • builder.py       → Builder inner class       │   │
+│   │  • accessors.py     → @property, withers       │   │
+│   │  • validation.py    → type checks, null checks  │   │
+│   │  • logger.py        → logging.getLogger        │   │
+│   │  • copyable.py      → copy(), copy_with()      │   │
+│   │  • serialization.py → to_dict, from_dict, json │   │
+│   │  • record.py        → all-in-one orchestrator   │   │
+│   │  • utils.py         → helpers, metadata        │   │
+│   └─────────────────────────────────────────────────┘   │
+│                         ↓                                │
+│              Classe Final (bytecode nativo)               │
+│           c.__komodo_ast__ = AST preservada              │
+│           c.__komodo_meta__ = features aplicadas         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### ast_builders.py
+
+Helpers para construção de nós AST comuns:
+
+- `make_arg(name, annotation)`: cria `ast.arg`
+- `make_arguments(args, defaults)`: cria `ast.arguments`
+- `make_function(name, args, body, returns)`: cria `ast.FunctionDef`
+- `make_assign(target, value)`: cria `ast.Assign` simples
+- `make_attribute_assign(obj, attr, value)`: cria `ast.Assign` com atributo
+- `make_return(value)`: cria `ast.Return`
+- `make_call(func_name, args, kwargs)`: cria `ast.Call`
+- `make_raise(exc_name, msg)`: cria `ast.Raise`
+- `make_if(test, body, orelse)`: cria `ast.If`
+
+### ast_generators/utils.py
+
+Utilidades compartilhadas:
+
+- `get_fields_from_ast(class_def)`: extrai campos anotados
+- `get_defaults_from_ast(class_def)`: extrai valores padrão
+- `has_method(class_def, name)`: verifica se método existe
+- `add_method(class_def, method_def)`: adiciona método respeitando overrides
+- `get_komodo_meta(cls)`: lê `__komodo_meta__`
+- `mark_komodo_meta(cls, feature)`: marca feature em `__komodo_meta__`
 
 ---
 
 ## Notas Técnicas
 
-### PEP 563 — Anotações como strings
+### Performance — Zero Overhead
 
-Quando um ficheiro usa `from __future__ import annotations`, todas as anotações são armazenadas como strings em vez de tipos reais. O `@komodo.validated` e o `@komodo.constructor` lidam com isso automaticamente via `typing.get_type_hints()`.
-
-Se criares um decorator customizado que precise inspecionar anotações, usa sempre:
+Todas as transformações ocorrem uma única vez em tempo de importação (`import time`). As classes resultantes são bytecode puro — sem proxies, sem `__getattr__` dinâmico, sem metaclasses, sem wrappers. A performance de instanciação e acesso é idêntica a uma classe escrita manualmente.
 
 ```python
-import typing
-hints = typing.get_type_hints(cls)  # em vez de cls.__annotations__
+# Bytecode gerado é nativo:
+import dis
+@komodo.data
+class Point:
+    x: float
+    y: float
+
+dis.dis(Point.__init__)  # Idêntico a código escrito manualmente
 ```
 
 ### Metadados de komodo
 
-Cada decorator marca a classe com o set de features aplicadas em `cls.__komodo_meta__`. Podes inspecionar diretamente:
+Cada decorator marca a classe com features em `cls.__komodo_meta__`:
 
 ```python
 @komodo.data
 class Foo:
     x: int
 
-print(Foo.__komodo_meta__)  # {'data', 'constructor', 'to_str', 'eq'}
+print(Foo.__komodo_meta__)  # {'data', 'all_constructor', 'to_str', 'eq'}
+
+@komodo.builder
+@komodo.logger
+class Bar:
+    x: int
+
+print(Bar.__komodo_meta__)  # {'all_constructor', 'builder', 'logger'}
 ```
 
-### Decorator stacking e `__init__` chains
+Permite introspecção em runtime via `KomodoInspector`.
 
-Quando múltiplos decorators modificam `__init__`, cada um envolve o anterior. A ordem de execução em runtime é do mais externo para o mais interno:
+### Hash resiliente
 
-```
-@komodo.non_null    → wrapper C (executa primeiro)
-@komodo.validated   → wrapper B
-@komodo.constructor → wrapper A (executa por último, o __init__ real)
-```
-
-Chamar `MyClass(args)` executa: `non_null.__init__` → `validated.__init__` → `constructor.__init__`.
-
-### Performance
-
-Todos os reescritos acontecem uma única vez em tempo de definição da classe (`import time`). Não há overhead em runtime além das chamadas normais a funções Python — sem proxies, sem `__getattr__` dinâmico, sem metaclasses.
-
-### Thread safety
-
-`@komodo.singleton` não é thread-safe por padrão. Para aplicações multi-thread, envolve com um lock:
+O gerador de `__hash__` inclui fallback para `id(self)` quando os campos contêm tipos mutáveis (ex: `list`), evitando `TypeError: unhashable type`:
 
 ```python
-import threading
+@komodo.data
+class Config:
+    name: str
+    options: list  # mutável!
 
-@komodo.singleton
-class ThreadSafeConfig:
-    _lock = threading.Lock()
+c = Config("app", [1, 2, 3])
+print(hash(c))  # funciona: usa id(self) como fallback
+```
 
-    def get_setting(self, key: str) -> str:
-        with self._lock:
-            return ...
+### PEP 563 — Anotações como strings
+
+Quando um ficheiro usa `from __future__ import annotations`, o Komodo resolve anotações via `typing.get_type_hints()` (futura mejora).
+
+### AST Stacking
+
+Quando múltiplos decorators são empilhados, cada um herda e modifica a mesma AST:
+
+```python
+@komodo.logger      # ← recebe AST de @komodo.copyable
+@komodo.copyable    # ← recebe AST de @komodo.data
+@komodo.data        # ← gera AST inicial
+class User:
+    name: str
+```
+
+A AST é preservada em `cls.__komodo_ast__` entre decorators, evitando re-parsing do source (mais eficiente).
+
+### Remoção de decorators
+
+Durante o parse, todos os decorators `@komodo.*` são removidos da AST para evitar recursão infinita ao compilar:
+
+```python
+# Original:
+@komodo.data
+class Foo:
+    x: int
+
+# AST após strip:
+class Foo:
+    x: int
+# (sem @komodo.data)
+```
+
+### Design by Contract — Erro Reporting
+
+Os erros de contrato incluem stack trace limpo:
+
+```python
+ContractViolationError: [komodo.contract] precondition violated in 'safe_divide': 
+                        divisor must not be zero
+```
+
+O `kind`, `func`, e `message` estão disponíveis como atributos para programação.
+
+### Patterns Removidos
+
+Os decorators `singleton`, `observable`, `delegate`, `mixin`, `sealed` e `deprecated` foram migrados para o pacote `nestifypy.patterns`. O Komodo foca exclusivamente em eliminação de boilerplate de modelagem de dados.
+
+```python
+from nestifypy.patterns import singleton, observable, sealed, deprecated
 ```
 
 ---
 
-*`nestifypy.komodo` — parte da biblioteca nestifypy.*
+## Roadmap Futuro
+
+- [ ] Resolução de PEP 563 (anotações como strings)
+- [ ] Suporte a `typing.Generic` em builders
+- [ ] Contrato pré/pós em properties
+- [ ] Cache de AST para performance extrema
+- [ ] Plugin system para geradores custom
+
+---
+
+*`nestifypy.komodo` — Lombok para Python com zero runtime overhead.*  
+*Versão 0.2.1 — Setembro 2024*

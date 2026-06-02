@@ -52,40 +52,58 @@ def test_scene_manager():
     # Because Scene is a global API wrapper around SceneManager
     # Let's test the stack logic
     
+    # Use a fresh SceneManager to avoid state leaking from other tests
+    from nestifypy.pyunix.scene import SceneManager, _SceneAPI
+    mgr = SceneManager()
+    sc = _SceneAPI(mgr)
+
     loaded = []
     unloaded = []
+    paused = []
+    resumed = []
 
-    @Scene("menu")
+    @sc("menu")
     class MenuScene:
-        @Scene.load
+        @sc.load
         def on_load(self):
             loaded.append("menu")
 
-        @Scene.unload
+        @sc.unload
         def on_unload(self):
             unloaded.append("menu")
 
-    @Scene("game")
+        @sc.pause
+        def on_pause(self):
+            paused.append("menu")
+
+        @sc.resume
+        def on_resume(self):
+            resumed.append("menu")
+
+    @sc("game")
     class GameScene:
-        @Scene.load
+        @sc.load
         def on_load(self):
             loaded.append("game")
 
-        @Scene.unload
+        @sc.unload
         def on_unload(self):
             unloaded.append("game")
 
-    Scene.push("menu")
+    sc.push("menu")
     assert loaded == ["menu"]
-    assert unloaded == []
+    assert paused == []
 
-    Scene.push("game")
+    # Pushing "game" should pause "menu", then load "game"
+    sc.push("game")
     assert loaded == ["menu", "game"]
-    assert unloaded == ["menu"]
+    assert paused == ["menu"]
+    assert unloaded == []        # push pauses, not unloads
 
-    Scene.pop()
-    assert loaded == ["menu", "game", "menu"]
-    assert unloaded == ["menu", "game"]
+    # Popping "game" should unload "game" and resume "menu"
+    sc.pop()
+    assert unloaded == ["game"]
+    assert resumed == ["menu"]
 
 
 def test_sprite_hooks():

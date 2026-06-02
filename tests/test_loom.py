@@ -42,6 +42,8 @@ def test(name: str):
             traceback.print_exc()
     return decorator
 
+test.__test__ = False
+
 
 def loom(source: str) -> LoomRuntime:
     """Create a fresh LoomRuntime loaded with inline source."""
@@ -963,18 +965,19 @@ def _():
 #  Results
 # ─────────────────────────────────────────────────────────────────────────────
 
-passed = sum(1 for _, ok, _ in _results if ok)
-failed = sum(1 for _, ok, _ in _results if not ok)
-total = len(_results)
+if __name__ == "__main__":
+    passed = sum(1 for _, ok, _ in _results if ok)
+    failed = sum(1 for _, ok, _ in _results if not ok)
+    total = len(_results)
 
-print(f"\n\033[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
-print(f"  Results: \033[92m{passed} passed\033[0m / \033[91m{failed} failed\033[0m / {total} total")
+    print(f"\n\033[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
+    print(f"  Results: \033[92m{passed} passed\033[0m / \033[91m{failed} failed\033[0m / {total} total")
 
-if failed:
-    print("\n  Failed tests:")
-    for name, ok, err in _results:
-        if not ok:
-            print(f"    {_FAIL} {name}: {err}")
+    if failed:
+        print("\n  Failed tests:")
+        for name, ok, err in _results:
+            if not ok:
+                print(f"    {_FAIL} {name}: {err}")
 
-print(f"\033[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n")
-sys.exit(0 if failed == 0 else 1)
+    print(f"\033[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n")
+    sys.exit(0 if failed == 0 else 1)

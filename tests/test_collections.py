@@ -80,7 +80,7 @@ def test_hash_map():
     hm.put("c", 3)
     
     assert hm.get("a") == 1
-    assert hm.get_or_default("z", 99) == 99
+    assert hm.get_or("z", 99) == 99
     assert hm.contains_key("b")
     assert hm.contains_value(3)
     

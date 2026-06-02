@@ -127,7 +127,9 @@ class Validator:
     def email(value: str) -> str | None:
         """Basic RFC-5322-ish e-mail validator."""
         _EMAIL_RE = re.compile(
-            r"^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-.]+$"
+            r"^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*"
+            r"@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$",
+            re.IGNORECASE,
         )
         if not _EMAIL_RE.match(value.strip()):
             return f"{value!r} is not a valid e-mail address."

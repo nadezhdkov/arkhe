@@ -60,6 +60,7 @@ _POST_LOAD_ATTR  = "__json_post_load__"   # List[method_name]
 _PRE_DUMP_ATTR   = "__json_pre_dump__"    # List[method_name]
 _VALIDATORS_ATTR = "__json_validators__"  # Dict[python_name, List[method_name]]
 _MARKER_ATTR     = "__json_serializable__"
+_MISSING         = object()
 
 
 # ---------------------------------------------------------------------------
@@ -71,7 +72,7 @@ class FieldMeta:
     """All configuration for a single serialisable field."""
     python_name: str
     alias:       Optional[str]   = None   # JSON key override
-    default:     Any             = dataclasses.field(default=dataclasses.MISSING)
+    default:     Any             = _MISSING
     exclude:     bool            = False  # skip in both directions
     exclude_if_none: bool        = False  # skip when value is None
     required:    bool            = False  # raise if missing during from_dict
@@ -106,7 +107,7 @@ class _FieldDescriptor:
 def json_field(
     *,
     alias: Optional[str] = None,
-    default: Any = dataclasses.MISSING,
+    default: Any = _MISSING,
     exclude: bool = False,
     exclude_if_none: bool = False,
     required: bool = False,
@@ -349,14 +350,14 @@ def _collect_field_metadata(cls: Type) -> None:
         if python_name.startswith("_"):
             continue  # skip private/dunder
 
-        class_val = cls.__dict__.get(python_name, dataclasses.MISSING)
+        class_val = cls.__dict__.get(python_name, _MISSING)
 
         if isinstance(class_val, _FieldDescriptor):
             meta = class_val.meta
             meta.python_name = python_name
             fields[python_name] = meta
             # Replace the descriptor with the default value (or remove it)
-            if meta.default is not dataclasses.MISSING:
+            if meta.default is not _MISSING:
                 setattr(cls, python_name, meta.default)
             else:
                 try:
@@ -365,7 +366,7 @@ def _collect_field_metadata(cls: Type) -> None:
                     pass
         elif python_name not in fields:
             # Plain annotation — create a default FieldMeta
-            default = class_val if class_val is not dataclasses.MISSING else dataclasses.MISSING
+            default = class_val if class_val is not _MISSING else _MISSING
             fields[python_name] = FieldMeta(
                 python_name=python_name,
                 default=default,
@@ -432,7 +433,7 @@ def _inject_methods(cls: Type[T]) -> None:
                 raw = data[json_key]
             elif python_name in data:
                 raw = data[python_name]
-            elif meta.default is not dataclasses.MISSING:
+            elif meta.default is not _MISSING:
                 raw = meta.default() if callable(meta.default) else meta.default
             elif meta.required:
                 errors.append(f"Required field '{json_key}' is missing.")

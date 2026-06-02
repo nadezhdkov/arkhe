@@ -99,6 +99,7 @@ Aceda a uma propriedade ou chame um método no builder (ou num `InputResult`) pa
 | `.float` | `float` | Lança `InputConversionError` se não for número. |
 | `.number` | `int \| float` | Devolve `int` se o valor for inteiro (ex: `5.0 → 5`), senão `float`. |
 | `.bool` | `bool` | Aceita: `true/false`, `yes/no`, `y/n`, `1/0`, `on/off`, `sim/não`. |
+| `.auto` | `bool \| int \| float \| str` | Tenta inferir o tipo automaticamente (bool → int → float → str). |
 | `.list(type, sep)` | `list[T]` | Divide por `sep` (default `,`) e converte cada item. |
 | `.set(type, sep)` | `set[T]` | Igual ao `.list()` mas devolve um `set` (sem duplicados). |
 | `.tuple(*types, sep)` | `tuple` | Divide e aplica cada tipo na posição correspondente. |

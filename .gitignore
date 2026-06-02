@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Nistifypy
+.nestifypy/
+
+
 # Distribution / packaging
 .Python
 build/
@@ -95,7 +99,6 @@ celerybeat.pid
 # Environments
 .env
 .venv
-env/
 venv/
 ENV/
 env.bak/

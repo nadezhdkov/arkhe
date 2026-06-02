@@ -100,12 +100,12 @@ class KomodoInspector:
         """True if ``@komodo.immutable`` or ``@komodo.value`` was applied."""
         return bool(self.features & {"immutable", "value"})
 
-    # ── is_singleton ─────────────────────────────────────────────────────────
+    # ── is_record ────────────────────────────────────────────────────────────
 
     @property
-    def is_singleton(self) -> bool:
-        """True if ``@komodo.singleton`` was applied."""
-        return "singleton" in self.features
+    def is_record(self) -> bool:
+        """True if ``@komodo.record`` was applied."""
+        return "record" in self.features
 
     # ── contract_info ────────────────────────────────────────────────────────
 
@@ -138,7 +138,7 @@ class KomodoInspector:
             │  Defaults   : (none)                    │
             │  Generated  : __init__, __repr__, ...   │
             │  Immutable  : No                        │
-            │  Singleton  : No                        │
+            │  Record     : No                        │
             │  Has Builder: Yes                       │
             └─────────────────────────────────────────┘
         """
@@ -168,7 +168,7 @@ class KomodoInspector:
             row("Defaults", defaults_str),
             row("Generated", methods_str),
             row("Immutable", "Yes" if self.is_immutable else "No"),
-            row("Singleton", "Yes" if self.is_singleton else "No"),
+            row("Record", "Yes" if self.is_record else "No"),
             row("Has Builder", "Yes" if self.has_builder else "No"),
             f"└{line}┘",
         ]

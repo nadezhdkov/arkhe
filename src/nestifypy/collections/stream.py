@@ -53,6 +53,9 @@ U = TypeVar("U")
 K = TypeVar("K")
 R = TypeVar("R")
 
+# Sentinel used by pairwise() to detect the first iteration
+_MISSING = object()
+
 
 class StreamExhaustedException(RuntimeError):
     """Raised when a terminal operation is called on an already-consumed Stream."""
@@ -377,6 +380,186 @@ class Stream(Generic[T]):
             if batch:
                 yield batch
         return self._wrap(_gen())
+
+    def distinct_by(self, key_fn: Callable[[T], Any]) -> "Stream[T]":
+        """
+        Return a Stream with duplicates removed using a custom key extractor.
+
+        Only the first element for each key is kept. Unlike :meth:`distinct`,
+        this works correctly on non-hashable objects and complex types.
+
+        Args:
+            key_fn (Callable[[T], Any]): Function that extracts the deduplication key.
+
+        Returns:
+            Stream[T]: De-duplicated Stream.
+
+        Example::
+
+            Stream.of(users).distinct_by(lambda u: u.id)
+        """
+        self._check()
+        def _gen() -> Iterator[T]:
+            seen: Set[Any] = set()
+            for item in self._source:
+                k = key_fn(item)
+                if k not in seen:
+                    seen.add(k)
+                    yield item
+        return self._wrap(_gen())
+
+    def window(self, size: int) -> "Stream[List[T]]":
+        """
+        Produce a sliding window of *size* consecutive elements.
+
+        Each step advances by one element. The stream must contain at least
+        *size* elements for any window to be emitted.
+
+        Args:
+            size (int): Window size (must be >= 1).
+
+        Returns:
+            Stream[List[T]]: Stream of windows (each a plain list).
+
+        Raises:
+            ValueError: If *size* is less than 1.
+
+        Example::
+
+            Stream.range(1, 6).window(3)
+            # [1, 2, 3], [2, 3, 4], [3, 4, 5]
+        """
+        if size < 1:
+            raise ValueError(f"window size must be >= 1, got {size}")
+        self._check()
+        def _gen() -> Iterator[List[T]]:
+            buf: List[T] = []
+            for item in self._source:
+                buf.append(item)
+                if len(buf) == size:
+                    yield list(buf)
+                    buf.pop(0)
+        return self._wrap(_gen())
+
+    def pairwise(self) -> "Stream[Tuple[T, T]]":
+        """
+        Return a Stream of consecutive overlapping pairs.
+
+        Equivalent to ``window(2)`` but yields tuples instead of lists.
+
+        Returns:
+            Stream[Tuple[T, T]]: Stream of (prev, next) pairs.
+
+        Example::
+
+            Stream.of(1, 2, 3, 4).pairwise()
+            # (1, 2), (2, 3), (3, 4)
+        """
+        self._check()
+        def _gen() -> Iterator[Tuple[T, T]]:
+            prev = _MISSING
+            for item in self._source:
+                if prev is not _MISSING:
+                    yield (prev, item)  # type: ignore[misc]
+                prev = item
+        return self._wrap(_gen())
+
+    def map_not_none(self, transform: Callable[[T], Optional[U]]) -> "Stream[U]":
+        """
+        Apply *transform* to each element, discarding ``None`` results.
+
+        Useful when the mapping function may fail or return nothing for
+        certain inputs (e.g. parsing, type coercion).
+
+        Args:
+            transform (Callable[[T], U | None]): Mapping function.
+
+        Returns:
+            Stream[U]: Stream of non-None results.
+
+        Example::
+
+            Stream.of("1", "2", "x", "3").map_not_none(parse_int)
+            # 1, 2, 3
+        """
+        self._check()
+        def _gen() -> Iterator[U]:
+            for item in self._source:
+                result = transform(item)
+                if result is not None:
+                    yield result
+        return self._wrap(_gen())
+
+    def filter_is_instance(self, type_: type) -> "Stream[Any]":
+        """
+        Return a Stream containing only elements that are instances of *type_*.
+
+        Args:
+            type_ (type): The type to filter by.
+
+        Returns:
+            Stream: Stream of matching elements (cast to *type_*).
+
+        Example::
+
+            Stream.of(1, "hello", 2, "world").filter_is_instance(str)
+            # "hello", "world"
+        """
+        self._check()
+        return self._wrap(item for item in self._source if isinstance(item, type_))
+
+    def associate_by(self, key_fn: Callable[[T], K]) -> "HashMap[K, T]":
+        """
+        Collect elements into a :class:`~nestifypy.collections.HashMap` keyed
+        by the result of *key_fn*.
+
+        If multiple elements produce the same key, the last one wins.
+
+        Args:
+            key_fn (Callable[[T], K]): Key extractor.
+
+        Returns:
+            HashMap[K, T]: Map from key to element.
+
+        Example::
+
+            users.stream().associate_by(lambda u: u.id)
+            # {1: user1, 2: user2}
+        """
+        from nestifypy.collections.hash_map import HashMap
+        result: HashMap[K, T] = HashMap()
+        for item in self._consume():
+            result.put(key_fn(item), item)
+        return result
+
+    def associate(
+        self,
+        key: Callable[[T], K],
+        value: Callable[[T], U],
+    ) -> "HashMap[K, U]":
+        """
+        Collect elements into a :class:`~nestifypy.collections.HashMap` with
+        custom key and value extractors.
+
+        If multiple elements produce the same key, the last one wins.
+
+        Args:
+            key (Callable[[T], K]): Key extractor.
+            value (Callable[[T], U]): Value extractor.
+
+        Returns:
+            HashMap[K, U]: Map from extracted keys to extracted values.
+
+        Example::
+
+            users.stream().associate(key=lambda u: u.id, value=lambda u: u.name)
+            # {1: "John", 2: "Maria"}
+        """
+        from nestifypy.collections.hash_map import HashMap
+        result: HashMap[K, U] = HashMap()
+        for item in self._consume():
+            result.put(key(item), value(item))
+        return result
 
     # ------------------------------------------------------------------
     # Terminal operations  (eager — trigger evaluation)

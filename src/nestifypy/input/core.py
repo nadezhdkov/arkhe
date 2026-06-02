@@ -24,6 +24,8 @@ from nestifypy.input.exceptions import (
 from nestifypy.input.types import InputResult
 from nestifypy.input.validators import ValidatorFn
 
+builtins_str = str
+
 # ── ANSI colour helpers (degrade gracefully on non-TTY) ─────────────────────
 
 def _supports_color() -> bool:
@@ -294,6 +296,10 @@ class InputBuilder:
         return self.prompt().bool
 
     @property
+    def auto(self) -> bool | int | float | str:
+        return self.prompt().auto
+
+    @property
     def path(self):
         return self.prompt().path
 
@@ -321,10 +327,10 @@ class InputBuilder:
     def json(self):
         return self.prompt().json
 
-    def list(self, item_type=str, separator: str = ","):  # noqa: A003
+    def list(self, item_type=builtins_str, separator: str = ","):  # noqa: A003
         return self.prompt().list(item_type, separator)
 
-    def set(self, item_type=str, separator: str = ","):  # noqa: A003
+    def set(self, item_type=builtins_str, separator: str = ","):  # noqa: A003
         return self.prompt().set(item_type, separator)
 
     def tuple(self, *item_types, separator: str = ","):  # noqa: A003

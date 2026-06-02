@@ -755,6 +755,60 @@ def get_logger(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  ConfigError
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ConfigError(Exception):
+    """Raised when a configuration value is missing, invalid, or malformed."""
+    pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Logger – static facade over SLogger globals
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Logger:
+    """
+    Convenience static-method facade that delegates to
+    :class:`SLogger` class-level (global) emitters.
+
+    Usage::
+
+        from nestifypy.slogger import Logger
+        Logger.info("Server started")
+        Logger.warn("Disk space low")
+    """
+
+    @staticmethod
+    def trace(*args: Any) -> None:
+        SLogger.gtrace(*args)
+
+    @staticmethod
+    def debug(*args: Any) -> None:
+        SLogger.gdebug(*args)
+
+    @staticmethod
+    def info(*args: Any) -> None:
+        SLogger.ginfo(*args)
+
+    @staticmethod
+    def success(*args: Any) -> None:
+        SLogger.gsuccess(*args)
+
+    @staticmethod
+    def warn(*args: Any) -> None:
+        SLogger.gwarn(*args)
+
+    @staticmethod
+    def error(*args: Any) -> None:
+        SLogger.gerror(*args)
+
+    @staticmethod
+    def fatal(*args: Any) -> None:
+        SLogger.gfatal(*args)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  Public API
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -768,4 +822,7 @@ __all__ = [
     "JSONFormatter",
     # Factory
     "get_logger",
+    # Utilities
+    "ConfigError",
+    "Logger",
 ]
