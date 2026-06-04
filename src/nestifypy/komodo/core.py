@@ -20,6 +20,7 @@ from nestifypy.komodo.ast_generators.serialization import generate_to_dict, gene
 
 C = TypeVar("C", bound=type)
 
+
 class _Komodo:
 
     @staticmethod
@@ -41,35 +42,43 @@ class _Komodo:
 
     @staticmethod
     def constructor(cls: C) -> C:
-        return apply_generator(cls, lambda c, t: generate_constructor(c, t, "all"))
+        cls = apply_generator(cls, lambda c, t: generate_constructor(c, t, "all"))
+        return cls
 
     @staticmethod
     def no_args_constructor(cls: C) -> C:
-        return apply_generator(cls, lambda c, t: generate_constructor(c, t, "no_args"))
+        cls = apply_generator(cls, lambda c, t: generate_constructor(c, t, "no_args"))
+        return cls
 
     @staticmethod
     def required_args_constructor(cls: C) -> C:
-        return apply_generator(cls, lambda c, t: generate_constructor(c, t, "required"))
+        cls = apply_generator(cls, lambda c, t: generate_constructor(c, t, "required"))
+        return cls
 
     @staticmethod
     def all_args_constructor(cls: C) -> C:
-        return apply_generator(cls, lambda c, t: generate_constructor(c, t, "all"))
+        cls = apply_generator(cls, lambda c, t: generate_constructor(c, t, "all"))
+        return cls
 
     @staticmethod
     def to_str(cls: C) -> C:
-        return apply_generator(cls, generate_to_str)
+        cls = apply_generator(cls, generate_to_str)
+        return cls
 
     @staticmethod
     def eq(cls: C) -> C:
-        return apply_generator(cls, generate_eq_hash)
+        cls = apply_generator(cls, generate_eq_hash)
+        return cls
 
     @staticmethod
     def immutable(cls: C) -> C:
-        return apply_generator(cls, generate_immutable)
+        cls = apply_generator(cls, generate_immutable)
+        return cls
 
     @staticmethod
     def builder(cls: C) -> C:
-        return apply_generator(cls, generate_builder)
+        cls = apply_generator(cls, generate_builder)
+        return cls
 
     @staticmethod
     def singular(field_name: str) -> Callable[[C], C]:
@@ -83,60 +92,75 @@ class _Komodo:
     @staticmethod
     def accessors(fluent: bool = False, getter: bool = True, setter: bool = True, withers: bool = False) -> Callable[[C], C]:
         def decorator(cls: C) -> C:
-            return apply_generator(cls, lambda c, t: generate_accessors(c, t, fluent, getter, setter, withers))
+            cls = apply_generator(cls, lambda c, t: generate_accessors(c, t, fluent, getter, setter, withers))
+            return cls
         return decorator
-        
+
     @staticmethod
     def getter(cls: C) -> C:
-        return apply_generator(cls, lambda c, t: generate_accessors(c, t, False, True, False, False))
-        
+        cls = apply_generator(cls, lambda c, t: generate_accessors(c, t, False, True, False, False))
+        return cls
+
     @staticmethod
     def setter(cls: C) -> C:
-        return apply_generator(cls, lambda c, t: generate_accessors(c, t, False, False, True, False))
-        
+        cls = apply_generator(cls, lambda c, t: generate_accessors(c, t, False, False, True, False))
+        return cls
+
     @staticmethod
     def withers(cls: C) -> C:
-        return apply_generator(cls, lambda c, t: generate_accessors(c, t, False, False, False, True))
+        cls = apply_generator(cls, lambda c, t: generate_accessors(c, t, False, False, False, True))
+        return cls
 
     @staticmethod
     def logger(cls: C) -> C:
-        return apply_generator(cls, generate_logger)
+        cls = apply_generator(cls, generate_logger)
+        return cls
 
     @staticmethod
     def non_null(cls: C) -> C:
-        return apply_generator(cls, generate_non_null)
+        cls = apply_generator(cls, generate_non_null)
+        return cls
 
     @staticmethod
     def validated(cls: C) -> C:
-        return apply_generator(cls, generate_validated)
+        cls = apply_generator(cls, generate_validated)
+        return cls
 
     @staticmethod
     def copyable(cls: C) -> C:
-        return apply_generator(cls, generate_copyable)
+        cls = apply_generator(cls, generate_copyable)
+        return cls
 
     @staticmethod
     def to_dict(cls: C) -> C:
-        return apply_generator(cls, generate_to_dict)
+        cls = apply_generator(cls, generate_to_dict)
+        return cls
 
     @staticmethod
     def from_dict(cls: C) -> C:
-        return apply_generator(cls, generate_from_dict)
+        cls = apply_generator(cls, generate_from_dict)
+        return cls
 
     @staticmethod
     def json(cls: C) -> C:
-        return apply_generator(cls, generate_json)
+        cls = apply_generator(cls, generate_json)
+        return cls
 
     @staticmethod
     def record(cls: C) -> C:
-        return apply_generator(cls, generate_record)
+        cls = apply_generator(cls, generate_record)
+        return cls
 
     @staticmethod
     def equals_and_hashcode(cls: C) -> C:
-        return apply_generator(cls, generate_eq_hash)
+        cls = apply_generator(cls, generate_eq_hash)
+        return cls
 
     @staticmethod
     def to_string(cls: C) -> C:
-        return apply_generator(cls, generate_to_str)
+        cls = apply_generator(cls, generate_to_str)
+        return cls
+
 
 komodo = _Komodo()
 __all__ = ["komodo"]

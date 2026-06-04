@@ -81,6 +81,8 @@ from nestifypy.collections.circular_buffer import CircularBuffer
 from nestifypy.collections.stream import Stream, StreamExhaustedException
 from nestifypy.collections.optional import Optional
 from nestifypy.collections.result import Result
+from nestifypy.collections.immutable_list import ImmutableList
+from nestifypy.collections.unmodifiable import unmodifiable
 
 __all__ = [
     # Collections
@@ -100,4 +102,8 @@ __all__ = [
     "Result",
     # Exceptions
     "StreamExhaustedException",
+    # immutable
+    "ImmutableList",
+    # unmodifiable
+    "unmodifiable",
 ]

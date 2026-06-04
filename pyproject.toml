@@ -118,7 +118,11 @@ include = ["nestifypy*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-nestifypy = ["py.typed"]
+nestifypy = [
+    "py.typed",
+    "**/*.pyi",
+    "komodo/*.pyi"
+]
 
 [tool.ruff]
 line-length = 88
@@ -131,6 +135,15 @@ ignore = ["UP006", "UP007", "E501"] # Keep standard typing for now
 [tool.mypy]
 python_version = "3.10"
 strict = true
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "basic"
+reportGeneralTypeIssues = true
+reportOptionalMemberAccess = true
+reportOptionalSubscript = true
+reportPrivateImportUsage = false
+stubPath = "src/nestifypy"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

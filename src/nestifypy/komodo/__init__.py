@@ -6,6 +6,10 @@ Lombok-style annotation-driven metaprogramming for Python.
 Eliminates class boilerplate by generating dunder methods, builders,
 accessors, validators, and lifecycle hooks — all via decorators.
 
+IDE Support:
+    This module can generate .pyi stub files for IDE autocomplete support
+    in PyCharm, VS Code/Pylance, and other compatible IDEs.
+
 Usage:
     from nestifypy.komodo import komodo
 
@@ -24,11 +28,24 @@ from nestifypy.komodo.core import komodo
 from nestifypy.komodo.contract import contract, ContractViolationError
 from nestifypy.komodo.inspect import KomodoInspector
 
-__version__ = "0.2.1"
+# Optional: import stub generator if available
+try:
+    from nestifypy.komodo.stub_generator import StubGenerator, generate_and_write_stub
+    __all__ = [
+        "komodo",
+        "contract",
+        "ContractViolationError",
+        "KomodoInspector",
+        "StubGenerator",
+        "generate_and_write_stub",
+    ]
+except ImportError:
+    # stub_generator not available (OK for basic use)
+    __all__ = [
+        "komodo",
+        "contract",
+        "ContractViolationError",
+        "KomodoInspector",
+    ]
 
-__all__ = [
-    "komodo",
-    "contract",
-    "ContractViolationError",
-    "KomodoInspector",
-]
+__version__ = "0.2.1"

@@ -1,13 +1,18 @@
 """
 nestifypy.math._money
 ---------------------
-Money v2 — Precisão Arbitrária, Cache Inteligente, Criptoativos.
+Money v2 — Precisão Arbitrária, Cache em Memória, Criptoativos.
 
 Utiliza BigDecimal internamente — sem float em nenhum momento do pipeline
 financeiro.
 
 Integra-se automaticamente com NestifyPy Net quando disponível.
-Cache persistente em .nestifypy/cache/currency.json.
+Cache somente em memória (sem escrita em disco).
+
+Dependências HTTP (em ordem de preferência):
+  1. NestifyPy Net  (nestifypy.net)
+  2. requests       (pip install requests)
+  3. urllib         (stdlib — sempre disponível)
 
 ::
 
@@ -28,10 +33,8 @@ Cache persistente em .nestifypy/cache/currency.json.
 from __future__ import annotations
 
 import json
-import os
 import time
 from decimal import Decimal
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 
@@ -52,6 +55,18 @@ try:
 except ImportError:
     _net_request = None  # type: ignore[assignment]
     _HAS_NET = False
+
+
+# ---------------------------------------------------------------------------
+# Detecção de requests
+# ---------------------------------------------------------------------------
+
+try:
+    import requests as _requests  # type: ignore
+    _HAS_REQUESTS = True
+except ImportError:
+    _requests = None  # type: ignore[assignment]
+    _HAS_REQUESTS = False
 
 
 # ---------------------------------------------------------------------------
@@ -117,19 +132,19 @@ class Currency:
     HRK = "HRK"
 
     # Criptoativos
-    BTC  = "BTC"
-    ETH  = "ETH"
-    SOL  = "SOL"
-    ADA  = "ADA"
-    XRP  = "XRP"
-    DOGE = "DOGE"
-    USDT = "USDT"
-    USDC = "USDC"
-    BNB  = "BNB"
-    TRX  = "TRX"
-    AVAX = "AVAX"
+    BTC   = "BTC"
+    ETH   = "ETH"
+    SOL   = "SOL"
+    ADA   = "ADA"
+    XRP   = "XRP"
+    DOGE  = "DOGE"
+    USDT  = "USDT"
+    USDC  = "USDC"
+    BNB   = "BNB"
+    TRX   = "TRX"
+    AVAX  = "AVAX"
     MATIC = "MATIC"
-    DAI  = "DAI"
+    DAI   = "DAI"
 
 
 # ---------------------------------------------------------------------------
@@ -209,20 +224,11 @@ _CRYPTO_SYMBOLS = frozenset({
 
 
 # ---------------------------------------------------------------------------
-# Caminhos de cache persistente
-# ---------------------------------------------------------------------------
-
-_CACHE_DIR  = Path(".nestifypy/cache")
-_CACHE_FILE = _CACHE_DIR / "currency.json"
-_CONV_LOG   = _CACHE_DIR / "conversions.log"
-
-
-# ---------------------------------------------------------------------------
-# _RateCache — cache em memória + disco
+# _RateCache — cache somente em memória
 # ---------------------------------------------------------------------------
 
 class _RateCache:
-    """Cache de taxas de câmbio: memória + arquivo JSON persistente."""
+    """Cache de taxas de câmbio somente em memória."""
 
     def __init__(self) -> None:
         self._rates: Dict[str, BigDecimal] = {}
@@ -242,7 +248,6 @@ class _RateCache:
         self._rates = rates
         self._base = base
         self._fetched_at = time.time()
-        self._persist()
 
     def get_rates(self) -> Dict[str, BigDecimal]:
         return self._rates
@@ -250,40 +255,10 @@ class _RateCache:
     def get_base(self) -> str:
         return self._base
 
-    # ── persistência em disco ─────────────────────────────────────────────
-
-    def _persist(self) -> None:
-        """Salva as taxas em .nestifypy/cache/currency.json."""
-        try:
-            _CACHE_DIR.mkdir(parents=True, exist_ok=True)
-            payload = {
-                "fetched_at": self._fetched_at,
-                "base": self._base,
-                "rates": {k: str(v) for k, v in self._rates.items()},
-            }
-            _CACHE_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        except OSError:
-            pass
-
-    def load_from_disk(self) -> bool:
-        """
-        Tenta carregar taxas do arquivo JSON em disco.
-        Retorna True se encontrou dados válidos dentro do prazo de validade.
-        """
-        if not _CACHE_FILE.exists():
-            return False
-        try:
-            payload = json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
-            fetched_at = float(payload.get("fetched_at", 0))
-            if (time.time() - fetched_at) >= self._max_age_seconds:
-                return False
-            raw_rates: Dict[str, str] = payload.get("rates", {})
-            self._rates = {k: BigDecimal(v) for k, v in raw_rates.items()}
-            self._base = payload.get("base", "USD")
-            self._fetched_at = fetched_at
-            return bool(self._rates)
-        except (OSError, KeyError, ValueError, Exception):
-            return False
+    def invalidate(self) -> None:
+        """Descarta o cache em memória."""
+        self._rates = {}
+        self._fetched_at = None
 
 
 _cache = _RateCache()
@@ -303,15 +278,9 @@ def _to_bigdecimal(value: Any) -> BigDecimal:
 
 
 def _log_conversion(frm: str, to: str, amount: BigDecimal, result: BigDecimal) -> None:
-    """Registra conversão em .nestifypy/cache/conversions.log (opcional)."""
-    try:
-        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        ts = time.strftime("%Y-%m-%dT%H:%M:%S")
-        line = f"{ts} | {amount} {frm} → {result} {to}\n"
-        with _CONV_LOG.open("a", encoding="utf-8") as fh:
-            fh.write(line)
-    except OSError:
-        pass
+    """Registra conversão em memória (log simples para stdout quando ativo)."""
+    ts = time.strftime("%Y-%m-%dT%H:%M:%S")
+    print(f"[money] {ts} | {amount} {frm} → {result} {to}")
 
 
 # ---------------------------------------------------------------------------
@@ -323,8 +292,12 @@ class Money:
     Valor monetário com precisão arbitrária (BigDecimal internamente).
 
     Suporta moedas fiduciárias e criptoativos.
-    Integra-se automaticamente com NestifyPy Net para taxas em tempo real.
-    Cache persistente em .nestifypy/cache/currency.json.
+    Cache somente em memória (sem escrita em disco).
+
+    Dependências HTTP (em ordem de preferência):
+      1. NestifyPy Net  (nestifypy.net)
+      2. requests       (pip install requests)
+      3. urllib         (stdlib — sempre disponível)
 
     ::
 
@@ -344,25 +317,31 @@ class Money:
     _fetcher: Optional[Any] = None
     _log_conversions: bool = False
 
+    # Timeout padrão para requisições HTTP (segundos)
+    _HTTP_TIMEOUT: int = 8
+
+    # Número de tentativas em caso de falha de rede
+    _HTTP_RETRIES: int = 2
+
     # APIs de taxas (fiat e crypto separadas)
     _FIAT_API_URL:   str = "https://open.er-api.com/v6/latest/USD"
     _CRYPTO_API_URL: str = "https://api.coingecko.com/api/v3/simple/price"
 
     # Mapeamento símbolo → id do CoinGecko
     _COINGECKO_IDS: Dict[str, str] = {
-        "BTC":  "bitcoin",
-        "ETH":  "ethereum",
-        "SOL":  "solana",
-        "ADA":  "cardano",
-        "XRP":  "ripple",
-        "DOGE": "dogecoin",
-        "USDT": "tether",
-        "USDC": "usd-coin",
-        "BNB":  "binancecoin",
-        "TRX":  "tron",
-        "AVAX": "avalanche-2",
-        "MATIC":"matic-network",
-        "DAI":  "dai",
+        "BTC":   "bitcoin",
+        "ETH":   "ethereum",
+        "SOL":   "solana",
+        "ADA":   "cardano",
+        "XRP":   "ripple",
+        "DOGE":  "dogecoin",
+        "USDT":  "tether",
+        "USDC":  "usd-coin",
+        "BNB":   "binancecoin",
+        "TRX":   "tron",
+        "AVAX":  "avalanche-2",
+        "MATIC": "matic-network",
+        "DAI":   "dai",
     }
 
     def __init__(
@@ -482,7 +461,6 @@ class Money:
             Money("1234.56", "EUR").format(locale="de_DE")   # 1.234,56 €
         """
         value = self._amount.round(decimal_places).value()
-        # Formata o número com a quantidade certa de casas decimais
         formatted_number = f"{float(value):.{decimal_places}f}"
 
         _SYMBOLS: Dict[str, str] = {
@@ -492,7 +470,6 @@ class Money:
             "TRY": "₺", "ILS": "₪", "NGN": "₦", "PKR": "₨",
         }
 
-        # Separadores por locale
         _LOCALES: Dict[str, Dict[str, str]] = {
             "en_US": {"thousands": ",",  "decimal": ".", "symbol_pos": "prefix"},
             "en_GB": {"thousands": ",",  "decimal": ".", "symbol_pos": "prefix"},
@@ -505,12 +482,10 @@ class Money:
 
         lc = _LOCALES.get(locale, _LOCALES["en_US"])
 
-        # Reformata com separadores corretos
         parts = formatted_number.split(".")
         integer_part = parts[0]
         decimal_part = parts[1] if len(parts) > 1 else ""
 
-        # Aplica separador de milhares
         groups: List[str] = []
         for i, ch in enumerate(reversed(integer_part)):
             if i > 0 and i % 3 == 0:
@@ -541,7 +516,6 @@ class Money:
     # ── comparações ───────────────────────────────────────────────────────
 
     def _to_usd_amount(self) -> BigDecimal:
-        """Converte o valor para USD para permitir comparações entre moedas."""
         if self._currency == "USD":
             return self._amount
         return self.to("USD")._amount
@@ -573,7 +547,6 @@ class Money:
         return self == other or self > other
 
     def __hash__(self) -> int:
-        # Normaliza para USD antes de hashear
         try:
             usd = self._to_usd_amount()
             return hash(("USD", usd.value()))
@@ -610,7 +583,7 @@ class Money:
     @classmethod
     def cache(cls, hours: float = 1.0) -> None:
         """
-        Define o tempo máximo de cache para as taxas de câmbio.
+        Define o tempo máximo de cache em memória para as taxas de câmbio.
 
         ::
 
@@ -622,7 +595,8 @@ class Money:
     def set_fetcher(cls, fetcher: Any) -> None:
         """
         Injeta manualmente um cliente HTTP.
-        Na maioria dos casos não é necessário — a integração com Net é automática.
+        Na maioria dos casos não é necessário — a integração com Net / requests
+        é automática.
 
         ::
 
@@ -632,9 +606,31 @@ class Money:
         cls._fetcher = fetcher
 
     @classmethod
+    def set_timeout(cls, seconds: int) -> None:
+        """
+        Define o timeout (em segundos) para as requisições HTTP.
+
+        ::
+
+            Money.set_timeout(15)
+        """
+        cls._HTTP_TIMEOUT = seconds
+
+    @classmethod
+    def set_retries(cls, retries: int) -> None:
+        """
+        Define o número de tentativas em caso de falha de rede.
+
+        ::
+
+            Money.set_retries(3)
+        """
+        cls._HTTP_RETRIES = retries
+
+    @classmethod
     def enable_conversion_log(cls, enabled: bool = True) -> None:
         """
-        Ativa o registro de conversões em .nestifypy/cache/conversions.log.
+        Ativa o log de conversões no stdout.
 
         ::
 
@@ -644,36 +640,46 @@ class Money:
 
     @classmethod
     def refresh_rates(cls) -> None:
-        """Força atualização descartando o cache em memória."""
-        _cache._fetched_at = None
+        """Descarta o cache em memória e busca novas taxas imediatamente."""
+        _cache.invalidate()
         cls._get_rates()
 
     # ── pipeline de taxas ─────────────────────────────────────────────────
 
     @classmethod
     def _get_rates(cls) -> Dict[str, BigDecimal]:
-        # 1. Cache em memória válido
+        # 1. Cache em memória válido → retorna imediatamente
         if _cache.is_valid():
             return _cache.get_rates()
 
-        # 2. Cache em disco válido
-        if _cache.load_from_disk():
-            return _cache.get_rates()
-
-        # 3. Busca online
+        # 2. Busca online
         try:
             rates = cls._fetch_rates()
-            _cache.store(rates)
-            return rates
         except Exception:
-            # 4. Fallback para taxas estáticas
-            return {k: BigDecimal(v) for k, v in _FALLBACK_RATES_FROM_USD.items()}
+            rates = {}
+
+        # 3. Garante que TODOS os símbolos do fallback estão presentes
+        #    (preenche criptos ausentes quando CoinGecko não responde, etc.)
+        fallback = {k: BigDecimal(v) for k, v in _FALLBACK_RATES_FROM_USD.items()}
+        for symbol, rate in fallback.items():
+            rates.setdefault(symbol, rate)
+
+        # 4. Armazena em cache de memória
+        _cache.store(rates)
+        return rates
 
     @classmethod
     def _fetch_rates(cls) -> Dict[str, BigDecimal]:
         """
-        Busca taxas fiat + crypto, retorna Dict[str, BigDecimal].
-        Usa NestifyPy Net se disponível; caso contrário usa urllib.
+        Busca taxas fiat + crypto. Retorna Dict[str, BigDecimal].
+
+        Pipeline:
+          1. Taxas fiat via open.er-api.com  (USD como base)
+          2. Taxas crypto via CoinGecko
+          3. Criptos ausentes são preenchidos com _FALLBACK_RATES_FROM_USD
+
+        HTTP:
+          Usa NestifyPy Net → requests → urllib, nessa ordem de preferência.
         """
         rates: Dict[str, BigDecimal] = {}
 
@@ -691,41 +697,79 @@ class Money:
         )
         crypto_data = cls._http_get_json(crypto_url)
         if crypto_data:
-            # CoinGecko retorna { "bitcoin": { "usd": 105000 }, ... }
             id_to_symbol = {v: k for k, v in cls._COINGECKO_IDS.items()}
             for cg_id, price_info in crypto_data.items():
                 symbol = id_to_symbol.get(cg_id)
                 if symbol and "usd" in price_info:
                     price_usd = BigDecimal(str(price_info["usd"]))
-                    # Taxa = 1 USD / preço em USD = quantas moedas por 1 USD
                     if price_usd.value() != 0:
+                        # Taxa = 1 / preço (quantas moedas por 1 USD)
                         rates[symbol] = BigDecimal("1").divide(price_usd)  # type: ignore[assignment]
+
+        # ── Preenche criptos ausentes com fallback ────────────────────────
+        for symbol in _CRYPTO_SYMBOLS:
+            if symbol not in rates and symbol in _FALLBACK_RATES_FROM_USD:
+                rates[symbol] = BigDecimal(_FALLBACK_RATES_FROM_USD[symbol])
 
         if not rates:
             raise ValueError("Não foi possível obter taxas de nenhuma fonte.")
 
-        # Garante USD = 1
         rates["USD"] = BigDecimal("1")
         return rates
 
     @classmethod
     def _http_get_json(cls, url: str) -> Optional[Dict[str, Any]]:
-        """Faz GET e retorna o JSON. Usa Net se disponível, senão urllib."""
-        try:
-            fetcher = cls._fetcher or (_net_request if _HAS_NET else None)
-            if fetcher is not None:
-                # NestifyPy Net: request(url).get() → Response
-                response = fetcher(url).get()
-                if response.success:
-                    return response.json
-                return None
-            else:
-                import urllib.request as _urllib
-                with _urllib.urlopen(url, timeout=8) as resp:
-                    import json as _json
-                    return _json.loads(resp.read().decode())
-        except Exception:
+        """
+        Faz GET em *url* e retorna o JSON parseado.
+
+        Ordem de preferência dos clientes HTTP:
+          1. Fetcher manual (Money.set_fetcher)
+          2. NestifyPy Net (nestifypy.net.request)
+          3. requests      (pip install requests)
+          4. urllib        (stdlib)
+
+        Tenta até _HTTP_RETRIES vezes antes de desistir.
+        """
+        # ── 1. Fetcher manual ou NestifyPy Net ────────────────────────────
+        net_fetcher = cls._fetcher or (_net_request if _HAS_NET else None)
+        if net_fetcher is not None:
+            for attempt in range(max(1, cls._HTTP_RETRIES)):
+                try:
+                    response = net_fetcher(url).get()
+                    if response.success:
+                        return response.json
+                except Exception:
+                    pass
             return None
+
+        # ── 2. requests ───────────────────────────────────────────────────
+        if _HAS_REQUESTS:
+            for attempt in range(max(1, cls._HTTP_RETRIES)):
+                try:
+                    resp = _requests.get(
+                        url,
+                        timeout=cls._HTTP_TIMEOUT,
+                        headers={"Accept": "application/json"},
+                    )
+                    resp.raise_for_status()
+                    return resp.json()
+                except Exception:
+                    if attempt < cls._HTTP_RETRIES - 1:
+                        time.sleep(0.5 * (attempt + 1))
+            return None
+
+        # ── 3. urllib (stdlib) ────────────────────────────────────────────
+        import urllib.request as _urllib
+
+        for attempt in range(max(1, cls._HTTP_RETRIES)):
+            try:
+                req = _urllib.Request(url, headers={"Accept": "application/json"})
+                with _urllib.urlopen(req, timeout=cls._HTTP_TIMEOUT) as resp:
+                    return json.loads(resp.read().decode())
+            except Exception:
+                if attempt < cls._HTTP_RETRIES - 1:
+                    time.sleep(0.5 * (attempt + 1))
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -789,7 +833,7 @@ class CryptoPrice:
         data = Money._http_get_json(url)
 
         if data and isinstance(data, list) and len(data) > 0:
-            coin = data[0]
+            coin      = data[0]
             price     = BigDecimal(str(coin.get("current_price",  0)))
             mkt_cap   = BigDecimal(str(coin.get("market_cap",     0))) if coin.get("market_cap")   else None
             vol       = BigDecimal(str(coin.get("total_volume",   0))) if coin.get("total_volume") else None
@@ -801,9 +845,11 @@ class CryptoPrice:
         rate  = rates.get(symbol)
         if rate is None:
             raise ValueError(f"Não foi possível obter cotação para {symbol!r}.")
-        # rate = qty_symbol per 1 USD → preço = 1 / rate
         price_usd: Any = BigDecimal("1").divide(rate)
-        return cls(symbol, price_usd if not isinstance(price_usd, FailureResult) else BigDecimal("0"))
+        return cls(
+            symbol,
+            price_usd if not isinstance(price_usd, FailureResult) else BigDecimal("0"),
+        )
 
     # ── propriedades ──────────────────────────────────────────────────────
 
@@ -920,7 +966,7 @@ class Portfolio:
 
 
 # ---------------------------------------------------------------------------
-# Atualiza o __init__.py exports
+# Exports
 # ---------------------------------------------------------------------------
 
 __all__ = [

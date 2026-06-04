@@ -50,7 +50,7 @@ def generate_immutable(class_def: ast.ClassDef, cls: Type):
     ))
     
     setattr_body = [if_frozen, call_object_setattr]
-    setattr_func = make_function("__setattr__", make_arguments([make_arg("self"), make_arg("name", "str"), make_arg("value", "Any")]), setattr_body, returns=ast.Constant(value=None))
+    setattr_func = make_function("__setattr__", make_arguments([make_arg("self"), make_arg("name", "str"), make_arg("value")]), setattr_body, returns=ast.Constant(value=None))
     
     # __delattr__
     call_object_delattr = ast.Expr(value=ast.Call(

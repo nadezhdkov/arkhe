@@ -1,0 +1,271 @@
+import inspect
+import functools
+
+
+class AbstractMethodError(Exception):
+    pass
+
+
+class InstantiationError(Exception):
+    pass
+
+
+class OverrideError(Exception):
+    pass
+
+
+class FinalClassError(Exception):
+    pass
+
+
+_ABSTRACT_CLASSES: set[type] = set()
+_FINAL_CLASSES: set[type] = set()
+
+
+# ---------------------------------------------------------------------------
+# @abstract_class
+# ---------------------------------------------------------------------------
+
+def abstract_class(cls: type) -> type:
+    """
+    Marks a class as abstract.
+
+    Abstract classes:
+    - Cannot be instantiated directly.
+    - May contain concrete methods, fields, and constructors.
+    - Must declare abstract methods using @abstract_method.
+
+    Subclasses are validated at definition time: if any abstract method
+    is not implemented, AbstractMethodError is raised immediately.
+
+    Usage:
+        @abstract_class
+        class Repository:
+            @abstract_method
+            def save(self, data):
+                pass
+    """
+    _ABSTRACT_CLASSES.add(cls)
+
+    original_init_subclass = cls.__dict__.get("__init_subclass__")
+
+    @classmethod  # type: ignore[misc]
+    def __init_subclass__(subclass, **kwargs):
+        if original_init_subclass:
+            original_init_subclass.__func__(subclass, **kwargs)
+        else:
+            super(cls, subclass).__init_subclass__(**kwargs)
+
+        # Skip validation if the subclass itself is abstract.
+        #
+        # We check BOTH the registry and the __is_abstract__ flag because
+        # of a timing issue with nested @abstract_class hierarchies:
+        #
+        #   @abstract_class          <- (1) registers Level1, installs hook
+        #   class Level1: ...
+        #
+        #   @abstract_class          <- (3) decorator runs AFTER (2)
+        #   class Level2(Level1):    <- (2) __init_subclass__ fires here,
+        #       ...                         before Level2 is in the registry
+        #
+        # At step (2), Level2 is not yet in _ABSTRACT_CLASSES, so the
+        # registry check alone would incorrectly validate it as concrete.
+        # The __is_abstract__ flag is set by the decorator at step (3),
+        # but that is too late for this hook. We therefore defer to the
+        # presence of any @abstract_method in the subclass body as a
+        # reliable signal that the class is itself abstract.
+        if subclass in _ABSTRACT_CLASSES:
+            return
+
+        if _has_abstract_methods_in_body(subclass):
+            return
+
+        _validate_abstract_methods(cls, subclass)
+
+        # Validate @override markers
+        _validate_overrides(subclass.__bases__, subclass.__dict__)
+
+    cls.__init_subclass__ = __init_subclass__
+
+    # Prevent direct instantiation
+    original_new = cls.__new__
+
+    def __new__(klass, *args, **kwargs):
+        if klass is cls:
+            raise InstantiationError(
+                f"\nInstantiationError\n\nCannot instantiate abstract class {cls.__name__}"
+            )
+        if original_new is object.__new__:
+            return object.__new__(klass)
+        return original_new(klass, *args, **kwargs)
+
+    cls.__new__ = __new__
+    cls.__is_abstract__ = True
+    return cls
+
+
+def _has_abstract_methods_in_body(cls: type) -> bool:
+    """Return True if the class directly defines any @abstract_method."""
+    for value in cls.__dict__.values():
+        if getattr(value, "__is_abstract_method__", False):
+            return True
+    return False
+
+
+def _validate_abstract_methods(abstract_cls: type, subclass: type) -> None:
+    """Ensure the subclass implements every @abstract_method from abstract_cls."""
+    missing: list[str] = []
+
+    for name, member in inspect.getmembers(abstract_cls):
+        if getattr(member, "__is_abstract_method__", False):
+            # Check if subclass provides a concrete implementation
+            impl = _get_own_member(subclass, name)
+            if impl is None or getattr(impl, "__is_abstract_method__", False):
+                sig = _format_signature(name, member)
+                missing.append(sig)
+
+    if missing:
+        items = "\n".join(f" - {m}" for m in missing)
+        raise AbstractMethodError(
+            f"\nAbstractMethodError\n\n"
+            f"Class {subclass.__name__} must implement:\n\n{items}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# @abstract_method
+# ---------------------------------------------------------------------------
+
+def abstract_method(func):
+    """
+    Marks a method inside an @abstract_class as abstract.
+
+    Subclasses must override this method. Validation is done at class
+    definition time via __init_subclass__.
+
+    Usage:
+        @abstract_method
+        def save(self, data):
+            pass
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        raise NotImplementedError(
+            f"Abstract method '{func.__name__}' must be implemented by a subclass."
+        )
+
+    wrapper.__is_abstract_method__ = True
+    return wrapper
+
+
+# ---------------------------------------------------------------------------
+# @override
+# ---------------------------------------------------------------------------
+
+def override(func):
+    """
+    Marks a method as intentionally overriding a parent class method.
+
+    Raises OverrideError at class creation time if no parent defines
+    a method with the same name.
+
+    Usage:
+        @override
+        def save(self, data):
+            ...
+    """
+    func.__is_override__ = True
+    return func
+
+
+class _OverrideValidatingMeta(type):
+    """
+    Metaclass that validates @override methods at class definition time.
+
+    Use this as the metaclass for any base class hierarchy that needs
+    @override validation without depending on @abstract_class.
+    """
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
+        if bases:  # skip the base class itself
+            _validate_overrides(bases, namespace)
+        return cls
+
+
+def _validate_overrides(bases: tuple, namespace: dict) -> None:
+    """Raise OverrideError if any @override method has no parent counterpart."""
+    parent_method_names: set[str] = set()
+    for base in bases:
+        for klass in base.__mro__:
+            parent_method_names.update(klass.__dict__.keys())
+
+    for method_name, member in namespace.items():
+        if callable(member) and getattr(member, "__is_override__", False):
+            if method_name not in parent_method_names:
+                raise OverrideError(
+                    f"\nOverrideError\n\nMethod {method_name} does not override any parent method"
+                )
+
+
+# ---------------------------------------------------------------------------
+# @final
+# ---------------------------------------------------------------------------
+
+def final(cls: type) -> type:
+    """
+    Marks a class as non-inheritable.
+
+    Any attempt to subclass a @final class raises FinalClassError
+    at class definition time.
+
+    Usage:
+        @final
+        class Logger:
+            pass
+    """
+    _FINAL_CLASSES.add(cls)
+
+    original_init_subclass = cls.__dict__.get("__init_subclass__")
+
+    @classmethod  # type: ignore[misc]
+    def __init_subclass__(subclass, **kwargs):
+        raise FinalClassError(
+            f"\nFinalClassError\n\nClass {cls.__name__} cannot be extended"
+        )
+
+    cls.__init_subclass__ = __init_subclass__
+    cls.__is_final__ = True
+    return cls
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _get_own_member(cls: type, name: str):
+    """Return a member defined in the class itself (or non-abstract ancestors)."""
+    for klass in cls.__mro__:
+        if klass is object:
+            continue
+        if name in klass.__dict__:
+            return klass.__dict__[name]
+    return None
+
+
+def _format_signature(name: str, method) -> str:
+    """Format a method signature for error messages."""
+    try:
+        sig = inspect.signature(method)
+        params = []
+        for param_name, param in sig.parameters.items():
+            if param_name == "self":
+                continue
+            annotation = param.annotation
+            if annotation is inspect.Parameter.empty:
+                params.append(param_name)
+            else:
+                type_name = getattr(annotation, "__name__", str(annotation))
+                params.append(f"{param_name}: {type_name}")
+        return f"{name}({', '.join(params)})"
+    except (ValueError, TypeError):
+        return name

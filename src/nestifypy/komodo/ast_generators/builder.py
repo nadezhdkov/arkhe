@@ -115,7 +115,10 @@ def generate_builder(class_def: ast.ClassDef, cls: Type):
             keywords=build_kwargs
         ))
     )
-    builder_class.body.append(make_function("build", make_arguments([make_arg("self")]), build_body, returns=ast.Name(id=class_def.name, ctx=ast.Load())))
+    # Use a string literal as the return annotation so Python treats it as a
+    # forward reference and does NOT try to resolve the outer class name inside
+    # the Builder's own class scope (which would raise NameError).
+    builder_class.body.append(make_function("build", make_arguments([make_arg("self")]), build_body, returns=ast.Constant(value=class_def.name)))
     
     # Remove existing Builder if any
     class_def.body = [n for n in class_def.body if not (isinstance(n, ast.ClassDef) and n.name == "Builder")]
