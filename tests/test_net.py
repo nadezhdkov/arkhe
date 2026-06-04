@@ -1204,3 +1204,138 @@ class TestRequestBuilder:
             .get()
         )
         assert r.success
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  TestHttpStatus — enum de status
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestHttpStatus:
+    def test_http_status_values(self):
+        from arkhe.net import HttpStatus
+        assert HttpStatus.OK == 200
+        assert HttpStatus.NOT_FOUND == 404
+        assert HttpStatus.INTERNAL_SERVER_ERROR == 500
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  TestResponseProperties — novas propriedades de status
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestResponseProperties:
+    def test_status_properties(self, server):
+        r_ok = request(url(server, "/ok")).get()
+        assert r_ok.is_success
+        assert not r_ok.is_redirect
+        assert not r_ok.is_client_error
+        assert not r_ok.is_server_error
+
+        r_redir = request(url(server, "/redirect")).no_redirect().get()
+        assert not r_redir.is_success
+        assert r_redir.is_redirect
+        assert not r_redir.is_client_error
+
+        r_not_found = request(url(server, "/404")).get()
+        assert not r_not_found.is_success
+        assert r_not_found.is_client_error
+        assert not r_not_found.is_server_error
+
+        r_server_err = request(url(server, "/500")).get()
+        assert not r_server_err.is_success
+        assert r_server_err.is_server_error
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  TestResponseInto — typed conversion
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestResponseInto:
+    def test_into_converts_json_to_object(self, server):
+        from arkhe.json import json_serializable
+
+        @json_serializable
+        class MsgResponse:
+            status: str
+            message: str
+
+        r = request(url(server, "/ok")).get()
+        obj = r.into(MsgResponse)
+        
+        assert isinstance(obj, MsgResponse)
+        assert obj.status == "ok"
+        assert obj.message == "hello"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  TestInterceptors — API and Request interceptors
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestInterceptors:
+    def test_api_interceptors(self, server):
+        api = API(server)
+        req_flag = []
+        resp_flag = []
+
+        api.add_interceptor(lambda req: req_flag.append(True))
+        api.add_response_interceptor(lambda resp: resp_flag.append(resp.status))
+
+        r = api.get("/ok")
+        assert r.success
+        assert req_flag == [True]
+        assert resp_flag == [200]
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  TestMultipart — upload via multipart/form-data
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestMultipart:
+    def test_multipart_fields(self, server):
+        r = request(url(server, "/echo-body")).multipart().field("user", "alice").post()
+        assert r.success
+        assert "multipart/form-data" in r.json["content-type"]
+        assert "name=\"user\"" in r.json["body"]
+        assert "alice" in r.json["body"]
+
+    def test_multipart_file_upload(self, server):
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(b"test content")
+            f_name = f.name
+            
+        try:
+            r = request(url(server, "/echo-body")).file("document", f_name).post()
+            assert r.success
+            assert "multipart/form-data" in r.json["content-type"]
+            assert "filename=" in r.json["body"]
+            assert "test content" in r.json["body"]
+        finally:
+            os.remove(f_name)
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  TestDeclarativeAPI — @api, @get decorators
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestDeclarativeAPI:
+    def test_declarative_get(self, server):
+        from arkhe.net import api, get
+
+        @api(server)
+        class MyApi:
+            @get("/ok")
+            def fetch_ok(self):
+                pass
+                
+        client = MyApi()
+        r = client.fetch_ok()
+        # Since no return type hint was provided, it should return None 
+        # But wait, if return_type is type(None), it returns None!
+        assert r is None
+
+    def test_declarative_get_with_response_return(self, server):
+        from arkhe.net import api, get, Response
+
+        @api(server)
+        class MyApi:
+            @get("/ok")
+            def fetch_ok(self) -> Response:
+                pass
+                
+        client = MyApi()
+        r = client.fetch_ok()
+        assert r.success
+        assert r.json["status"] == "ok"

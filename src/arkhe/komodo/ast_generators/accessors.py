@@ -8,8 +8,18 @@ import ast
 from typing import Type
 from arkhe.komodo.ast_builders import make_arg, make_arguments, make_function, make_return, make_attribute_assign, make_if, make_call
 from arkhe.komodo.ast_generators.utils import get_fields_from_ast, mark_komodo_meta
+from arkhe.komodo.access_level import AccessLevel
 
-def generate_accessors(class_def: ast.ClassDef, cls: Type, fluent: bool = False, getter: bool = True, setter: bool = True, withers: bool = False):
+def generate_accessors(class_def: ast.ClassDef, cls: Type, fluent: bool = False, getter: bool = True, setter: bool = True, withers: bool = False, access: AccessLevel = AccessLevel.PUBLIC):
+    if access == AccessLevel.NONE:
+        return
+
+    prefix = ""
+    if access == AccessLevel.PROTECTED:
+        prefix = "_"
+    elif access == AccessLevel.PRIVATE:
+        prefix = "__"
+
     fields = get_fields_from_ast(class_def)
 
     for name in fields:
@@ -38,16 +48,17 @@ def generate_accessors(class_def: ast.ClassDef, cls: Type, fluent: bool = False,
 
             args = make_arguments([make_arg("self")])
             args.vararg = make_arg("args")
-            func = make_function(name, args, body, returns=ast.Constant(value=None))
+            method_name = f"{prefix}{name}"
+            func = make_function(method_name, args, body, returns=ast.Constant(value=None))
 
-            class_def.body = [n for n in class_def.body if not (isinstance(n, ast.FunctionDef) and n.name == name)]
+            class_def.body = [n for n in class_def.body if not (isinstance(n, ast.FunctionDef) and n.name == method_name)]
             class_def.body.append(func)
 
         else:
             if getter:
                 # def get_name(self) -> <type>:
                 #     return self.name
-                get_method_name = f"get_{name}"
+                get_method_name = f"{prefix}get_{name}"
                 body = [make_return(ast.Attribute(
                     value=ast.Name(id="self", ctx=ast.Load()),
                     attr=public_name,
@@ -65,7 +76,7 @@ def generate_accessors(class_def: ast.ClassDef, cls: Type, fluent: bool = False,
             if setter:
                 # def set_name(self, value: <type>) -> None:
                 #     self.name = value
-                set_method_name = f"set_{name}"
+                set_method_name = f"{prefix}set_{name}"
                 body = [make_attribute_assign("self", public_name, ast.Name(id="value", ctx=ast.Load()))]
                 func_set = make_function(
                     set_method_name,
@@ -80,13 +91,14 @@ def generate_accessors(class_def: ast.ClassDef, cls: Type, fluent: bool = False,
             # def with_name(self, value: <type>) -> Self:
             #     return self.copy_with(name=value)
             body = [make_return(make_call("self.copy_with", kwargs=[ast.keyword(arg=name, value=ast.Name(id="value", ctx=ast.Load()))]))]
+            with_method_name = f"{prefix}with_{name}"
             func_with = make_function(
-                f"with_{name}",
+                with_method_name,
                 make_arguments([make_arg("self"), make_arg("value", fields[name])]),
                 body,
                 returns=ast.Constant(value=None)
             )
-            class_def.body = [n for n in class_def.body if not (isinstance(n, ast.FunctionDef) and n.name == f"with_{name}")]
+            class_def.body = [n for n in class_def.body if not (isinstance(n, ast.FunctionDef) and n.name == with_method_name)]
             class_def.body.append(func_with)
 
     mark_komodo_meta(cls, "accessors")

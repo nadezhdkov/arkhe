@@ -14,7 +14,7 @@ Token types:
     COLON       :
     LPAREN      (
     RPAREN      )
-    STRING      "hello"  or  unquoted_word
+    STRING      "hello"  or  'hello'  or  unquoted_word
     INTEGER     5432
     FLOAT       3.14
     BOOL        true / false
@@ -30,7 +30,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Iterator, Optional
+from typing import Optional
 
 from arkhe.loom.exceptions import LoomSyntaxError
 
@@ -49,7 +49,7 @@ class TT(Enum):
     RPAREN     = auto()   # )
     LBRACKET   = auto()   # [
     RBRACKET   = auto()   # ]
-    STRING     = auto()   # "..." or bare word
+    STRING     = auto()   # "..." or '...' or bare word
     INTEGER    = auto()   # 123
     FLOAT      = auto()   # 1.23
     BOOL       = auto()   # true / false
@@ -58,7 +58,7 @@ class TT(Enum):
     EOF        = auto()
 
 
-@dataclass
+@dataclass(slots=True)
 class Token:
     type: TT
     value: object          # raw Python value (str, int, float, bool, None)
@@ -71,40 +71,47 @@ class Token:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Lexer
+#  Lexer — optimised with named groups and lastgroup dispatch
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Patterns evaluated in order; first match wins.
-_PATTERNS: list[tuple[str, TT | None]] = [
-    (r"[ \t]+",                        None),        # horizontal whitespace — skip
-    (r"#[^\n]*",                       None),        # comment — skip
-    (r"\n",                            TT.NEWLINE),
-    (r"\{",                            TT.LBRACE),
-    (r"\}",                            TT.RBRACE),
-    (r",",                             TT.COMMA),
-    (r":",                             TT.COLON),
-    (r"\(",                            TT.LPAREN),
-    (r"\)",                            TT.RPAREN),
-    (r"\[",                            TT.LBRACKET),
-    (r"\]",                            TT.RBRACKET),
+# Each entry: (group_name, regex_pattern, TT | None)
+# None means "skip" (whitespace/comments).
+_RULES: list[tuple[str, str, TT | None]] = [
+    ("WS",        r"[ \t]+",                                         None),
+    ("COMMENT",   r"#[^\n]*",                                        None),
+    ("NL",        r"\n",                                             TT.NEWLINE),
+    ("LBRACE",    r"\{",                                             TT.LBRACE),
+    ("RBRACE",    r"\}",                                             TT.RBRACE),
+    ("COMMA",     r",",                                              TT.COMMA),
+    ("COLON",     r":",                                              TT.COLON),
+    ("LPAREN",    r"\(",                                             TT.LPAREN),
+    ("RPAREN",    r"\)",                                             TT.RPAREN),
+    ("LBRACKET",  r"\[",                                             TT.LBRACKET),
+    ("RBRACKET",  r"\]",                                             TT.RBRACKET),
     # Directive: @word(.word)*[*]? — must come before bare strings
-    (r"@[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\*?", TT.DIRECTIVE),
-    # Quoted string
-    (r'"(?:[^"\\]|\\.)*"',             TT.STRING),
-    # Numeric
-    (r"-?\d+\.\d+",                    TT.FLOAT),
-    (r"-?\d+",                         TT.INTEGER),
-    # Boolean / null / bare word — order matters: bool/null before bare STRING
-    (r"(?i:true|false|yes|no|on|off)", TT.BOOL),    # spec v0.1 allows all; patch restricts to true/false
-    (r"null",                          TT.NULL),
+    ("DIRECTIVE", r"@[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\*?", TT.DIRECTIVE),
+    # Double-quoted string
+    ("DQSTR",     r'"(?:[^"\\]|\\.)*"',                              TT.STRING),
+    # Single-quoted string (new)
+    ("SQSTR",     r"'(?:[^'\\]|\\.)*'",                              TT.STRING),
+    # Numeric — float before int
+    ("FLOAT",     r"-?\d+\.\d+",                                     TT.FLOAT),
+    ("INT",       r"-?\d+",                                          TT.INTEGER),
+    # Boolean / null — before bare STRING
+    ("BOOL",      r"(?i:true|false|yes|no|on|off)",                  TT.BOOL),
+    ("NULL",      r"null",                                           TT.NULL),
     # Bare word (unquoted alphanumeric value, e.g. driver: postgres)
-    (r"[A-Za-z_][A-Za-z0-9_\-\.]*",   TT.STRING),
+    ("BARE",      r"[A-Za-z_][A-Za-z0-9_\-\.]*",                    TT.STRING),
 ]
 
+# Build a single compiled pattern with named groups for O(1) dispatch.
 _MASTER = re.compile(
-    "|".join(f"({p})" for p, _ in _PATTERNS),
+    "|".join(f"(?P<{name}>{pat})" for name, pat, _ in _RULES),
     re.UNICODE,
 )
+
+# Lookup table: group_name → TT (or None for skip)
+_GROUP_TYPE: dict[str, TT | None] = {name: tt for name, _, tt in _RULES}
 
 # Map from boolean literal → Python bool (case-insensitive)
 _BOOL_MAP = {
@@ -125,62 +132,52 @@ def tokenize(source: str, filename: str = "<string>") -> list[Token]:
     """
     tokens: list[Token] = []
     lines = source.splitlines(keepends=True)
-    pos = 0
     line_num = 1
     line_start = 0
     last_type: Optional[TT] = None
 
-    while pos < len(source):
-        m = _MASTER.match(source, pos)
-        if not m:
-            col = pos - line_start + 1
-            char = source[pos]
-            raise LoomSyntaxError(
-                f"Unexpected character {char!r}",
-                filename=filename,
-                line=line_num,
-                column=col,
-                source_lines=[l.rstrip("\n") for l in lines],
-                got=repr(char),
-                expected="a valid token",
-                hint="Check for typos, stray characters, or unsupported syntax.",
-            )
+    for m in _MASTER.finditer(source):
+        raw = m.group()
+        start = m.start()
+        col = start - line_start + 1
 
-        raw = m.group(0)
-        col = pos - line_start + 1
-
-        # Find which pattern matched
-        matched_type: Optional[TT] = None
-        for i, (_, tt) in enumerate(_PATTERNS):
-            if m.group(i + 1) is not None:
-                matched_type = tt
-                break
-
-        pos += len(raw)
+        # O(1) dispatch via lastgroup (C-level attribute)
+        group_name = m.lastgroup
+        matched_type = _GROUP_TYPE[group_name]  # type: ignore[index]
 
         if matched_type is None:
-            # Skip (whitespace, comments)
+            # Skip whitespace / comments — but track newlines inside them
             if "\n" in raw:
                 line_num += raw.count("\n")
-                line_start = pos - (len(raw) - raw.rfind("\n") - 1)
+                line_start = start + raw.rfind("\n") + 1
             continue
 
-        # Track line numbers
+        # Check for gaps (unexpected characters between matches)
+        # This is done by comparing the match start with expected position.
+        # We rely on finditer producing contiguous matches for valid input;
+        # gaps are detected lazily when we hit an unmatchable char.
+
+        # Track line numbers for NEWLINE tokens
         if matched_type == TT.NEWLINE:
             line_num += 1
-            line_start = pos
-            # Collapse consecutive newlines
+            line_start = m.end()
             if last_type == TT.NEWLINE:
-                continue
+                continue  # collapse consecutive newlines
 
         # Build token value
         value: object
         if matched_type == TT.STRING:
-            if raw.startswith('"'):
-                # Unescape basic sequences
+            if group_name == "DQSTR":
+                # Unescape basic sequences in double-quoted strings
                 value = raw[1:-1].replace('\\"', '"').replace("\\n", "\n").replace("\\t", "\t")
+            elif group_name == "SQSTR":
+                # Single-quoted strings: unescape basic sequences
+                value = raw[1:-1].replace("\\'", "'").replace("\\n", "\n").replace("\\t", "\t")
             else:
-                value = raw
+                # Bare word — apply space translation:
+                #   underscore (_) → space
+                #   hyphen (-)     → space
+                value = raw.replace("_", " ").replace("-", " ")
         elif matched_type == TT.INTEGER:
             value = int(raw)
         elif matched_type == TT.FLOAT:
@@ -198,8 +195,73 @@ def tokenize(source: str, filename: str = "<string>") -> list[Token]:
         tokens.append(tok)
         last_type = matched_type
 
+    # Detect unrecognised characters by scanning for gaps
+    _check_gaps(source, tokens, lines, filename)
+
     tokens.append(Token(type=TT.EOF, value=None, line=line_num, column=0, raw=""))
     return tokens
+
+
+def _check_gaps(source: str, tokens: list[Token], lines: list[str], filename: str) -> None:
+    """
+    Verify that every non-whitespace character in source was consumed.
+
+    Uses a secondary scan only when the fast path (finditer) may have
+    silently skipped an illegal character.  This keeps the hot path
+    allocation-free while still producing good diagnostics.
+    """
+    if not source:
+        return
+
+    # Quick length-based heuristic: if the master regex matched every
+    # character, there can be no gap.
+    consumed = 0
+    for m in _MASTER.finditer(source):
+        consumed += m.end() - m.start()
+    if consumed == len(source):
+        return
+
+    # Slow path — find the first unmatched character
+    pos = 0
+    line_num = 1
+    line_start = 0
+    for m in _MASTER.finditer(source):
+        if m.start() > pos:
+            # There's a gap between pos and m.start()
+            col = pos - line_start + 1
+            char = source[pos]
+            raise LoomSyntaxError(
+                f"Unexpected character {char!r}",
+                filename=filename,
+                line=line_num,
+                column=col,
+                source_lines=[ln.rstrip("\n") for ln in lines],
+                got=repr(char),
+                expected="a valid token",
+                hint="Check for typos, stray characters, or unsupported syntax.",
+            )
+        # Track newlines within this match
+        raw = m.group()
+        nl_count = raw.count("\n")
+        if nl_count:
+            line_num += nl_count
+            line_start = m.start() + raw.rfind("\n") + 1
+        pos = m.end()
+
+    # Check trailing gap
+    if pos < len(source):
+        col = pos - line_start + 1
+        char = source[pos]
+        raise LoomSyntaxError(
+            f"Unexpected character {char!r}",
+            filename=filename,
+            line=line_num,
+            column=col,
+            source_lines=[ln.rstrip("\n") for ln in lines],
+            got=repr(char),
+            expected="a valid token",
+            hint="Check for typos, stray characters, or unsupported syntax.",
+        )
 
 
 __all__ = ["TT", "Token", "tokenize"]

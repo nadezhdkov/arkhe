@@ -106,7 +106,10 @@ class YamlEngine:
     @classmethod
     def _global_get(cls, rt: YamlRuntime, path: str) -> Any:
         """Resolve a path globally across all indexed files."""
-        filename = rt.registry.find(path)
+        # Try leaf resolution first, fallback to original path
+        full_path = rt.registry.resolve_leaf(path) or path
+        
+        filename = rt.registry.find(full_path)
         if filename is None:
             return None
         config = rt.cache.get(filename)
@@ -115,7 +118,7 @@ class YamlEngine:
             config = cls.file(filename)
             if config is None:
                 return None
-        return config.get(path, None)
+        return config.get(full_path, None)
 
     # ── Saving ────────────────────────────────
 

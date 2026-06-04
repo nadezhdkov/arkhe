@@ -27,6 +27,7 @@ Usage:
 from arkhe.komodo.core import komodo
 from arkhe.komodo.contract import contract, ContractViolationError
 from arkhe.komodo.inspect import KomodoInspector
+from arkhe.komodo.access_level import AccessLevel
 
 # Optional: import stub generator if available
 try:
@@ -36,6 +37,7 @@ try:
         "contract",
         "ContractViolationError",
         "KomodoInspector",
+        "AccessLevel",
         "StubGenerator",
         "generate_and_write_stub",
     ]
@@ -46,6 +48,7 @@ except ImportError:
         "contract",
         "ContractViolationError",
         "KomodoInspector",
+        "AccessLevel",
     ]
 
 __version__ = "0.2.1"

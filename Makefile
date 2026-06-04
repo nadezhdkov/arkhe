@@ -71,7 +71,8 @@ endif
 	uv run python -m twine upload dist/* \
 		--username __token__ \
 		--password $(PYPI_TOKEN) \
-		--non-interactive
+		--non-interactive \
+		--verbose
 
 # ── Lint / Format ────────────────────────────────────────────────────────────
 

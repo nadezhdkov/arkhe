@@ -8,7 +8,7 @@ import pytest
 import logging
 import json
 
-from arkhe.komodo import komodo, KomodoInspector
+from arkhe.komodo import komodo, KomodoInspector, AccessLevel
 from arkhe.komodo import contract, ContractViolationError
 from arkhe.komodo.contract import requires, ensures, invariant
 
@@ -277,8 +277,8 @@ class TestBuilder:
             timeout: float = 30.0
 
         req = (Request.builder()
-               .with_url("https://api.example.com")
-               .with_method("POST")
+               .url("https://api.example.com")
+               .method("POST")
                .build())
 
         assert req.url == "https://api.example.com"
@@ -321,7 +321,7 @@ class TestSingular:
             members: list
 
         team = (Team.builder()
-                .with_name("Eng")
+                .name("Eng")
                 .member("Alice")
                 .member("Bob")
                 .build())
@@ -816,7 +816,7 @@ class TestComprehensiveStacking:
 
         # Builder & Singular
         entity = (MasterEntity.builder()
-                  .with_id("e-123")
+                  .id("e-123")
                   .tag("urgent")
                   .tag("backend")
                   .build())
@@ -827,7 +827,7 @@ class TestComprehensiveStacking:
 
         # Equality
         entity2 = (MasterEntity.builder()
-                   .with_id("e-123")
+                   .id("e-123")
                    .tag("urgent")
                    .tag("backend")
                    .build())
@@ -887,3 +887,91 @@ class TestComprehensiveStacking:
 
         with pytest.raises(AttributeError, match="immutable"):
             s.name = "changed"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Lombok-Style Enhancements
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestLombokStyleEnhancements:
+
+    def test_access_level_constructor(self):
+        @komodo.all_args_constructor(access=AccessLevel.PRIVATE, static_name="of")
+        class Point:
+            x: int
+            y: int
+
+        # Python doesn't prevent calling __init__, but it generated 'of'
+        p = Point.of(1, 2)
+        assert p.x == 1
+        assert p.y == 2
+        
+        @komodo.all_args_constructor(access=AccessLevel.NONE)
+        class NoConstructor:
+            x: int
+        
+        with pytest.raises(TypeError):
+            NoConstructor(1)
+
+    def test_access_level_accessors(self):
+        @komodo.getter(access=AccessLevel.PROTECTED)
+        @komodo.setter(access=AccessLevel.PRIVATE)
+        @komodo.all_args_constructor
+        class Secret:
+            code: str
+
+        s = Secret("123")
+        assert s._get_code() == "123"
+        s._Secret__set_code("456")
+        assert s.code == "456"
+
+    def test_to_str_parameters(self):
+        @komodo.to_str(includeFieldNames=False)
+        @komodo.all_args_constructor
+        class TupleLike:
+            a: int
+            b: int
+            
+        t = TupleLike(1, 2)
+        assert str(t) == "TupleLike(1, 2)"
+        
+        @komodo.to_str(exclude=["password"])
+        @komodo.all_args_constructor
+        class User:
+            username: str
+            password: str
+            
+        u = User("admin", "secret")
+        assert "password=" not in str(u)
+        assert "username='admin'" in str(u)
+        
+        @komodo.to_str(of=["id"])
+        @komodo.all_args_constructor
+        class Entity:
+            id: int
+            name: str
+            
+        e = Entity(1, "Test")
+        assert "name=" not in str(e)
+        assert "id=1" in str(e)
+
+    def test_logger_setup(self, capsys):
+        import sys
+        @komodo.logger(level=logging.INFO, topic="test.topic")
+        class Worker:
+            def work(self):
+                self.logger.info("working!")
+
+        w = Worker()
+        w.work()
+        # In pytest, logs might be captured by caplog or stderr
+        # We just assert it exists and is setup
+        assert Worker.logger.name == "test.topic"
+        assert Worker.logger.level == logging.INFO
+
+    def test_data_static_constructor(self):
+        @komodo.data(static_constructor="create")
+        class Obj:
+            val: int
+            
+        o = Obj.create(42)
+        assert o.val == 42

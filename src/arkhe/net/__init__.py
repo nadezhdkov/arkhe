@@ -8,8 +8,11 @@ from arkhe.net.net import (
     RequestError,
     TimeoutError,
     UnexpectedStatusError,
-    DownloadError
+    DownloadError,
+    UploadError
 )
+from arkhe.net.http_status import HttpStatus
+from arkhe.net.decorators import api, get, post, put, patch, delete
 
 __all__ = [
     "request",
@@ -22,4 +25,12 @@ __all__ = [
     "TimeoutError",
     "UnexpectedStatusError",
     "DownloadError",
+    "UploadError",
+    "HttpStatus",
+    "api",
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
 ]

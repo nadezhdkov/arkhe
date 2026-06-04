@@ -229,9 +229,10 @@ class Parser:
         Parse a scope directive and its body.
 
         Handles:
-            @db.main { ... }          block syntax
-            @db.main { k: v, k: v }  inline syntax
-            @db.main* { ... }         default scope
+            @db.main { ... }              block syntax
+            @db.main { k: v, k: v }      inline syntax
+            @db.main* { ... }             default scope
+            @db.main.host: "localhost"    single-value inline syntax (NEW)
         """
         dir_tok = self._advance()  # @scope.path or @scope.path*
         loc = self._loc(dir_tok)
@@ -249,7 +250,24 @@ class Parser:
             )
 
         self._skip_newlines()
-        self._expect(TT.LBRACE, hint=f"Scope '{raw}' must be followed by a '{{' block")
+
+        # ── NEW: Single-value inline syntax ─────────────────────────────
+        # Detect @scope.path.key: value  (COLON instead of LBRACE)
+        # The last segment of the path becomes the property key.
+        if self._peek().type == TT.COLON and len(path_parts) >= 2:
+            self._advance()  # consume the ':'
+            prop_key = path_parts[-1]
+            scope_path = path_parts[:-1]
+            value = self._parse_value()
+            prop = PropertyNode(key=prop_key, value=value, loc=loc)
+            return ScopeNode(
+                path=scope_path,
+                properties=[prop],
+                is_default=is_default,
+                loc=loc,
+            )
+
+        self._expect(TT.LBRACE, hint=f"Scope '{raw}' must be followed by a '{{' block or ':' for inline value")
         self._skip_newlines()
 
         properties = self._parse_scope_body()
@@ -297,7 +315,7 @@ class Parser:
         """Parse a single `key: value` property, including nested objects."""
         key_tok = self._advance()  # STRING (key name)
         loc = self._loc(key_tok)
-        key = str(key_tok.value)
+        key = str(key_tok.raw)     # Use raw text for keys (no space translation)
 
         # Check for '=' (common mistake from .env users)
         if self._peek().type == TT.STRING and str(self._peek().raw) == "=":

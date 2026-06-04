@@ -8,8 +8,18 @@ import ast
 from typing import Type
 from arkhe.komodo.ast_builders import make_arg, make_arguments, make_function, make_return, make_if, make_raise, make_call, make_assign, make_attribute_assign
 from arkhe.komodo.ast_generators.utils import get_fields_from_ast, get_defaults_from_ast, mark_komodo_meta, get_komodo_meta
+from arkhe.komodo.access_level import AccessLevel
 
-def generate_builder(class_def: ast.ClassDef, cls: Type):
+def generate_builder(class_def: ast.ClassDef, cls: Type, access: AccessLevel = AccessLevel.PUBLIC):
+    if access == AccessLevel.NONE:
+        return
+
+    prefix = ""
+    if access == AccessLevel.PROTECTED:
+        prefix = "_"
+    elif access == AccessLevel.PRIVATE:
+        prefix = "__"
+
     fields = get_fields_from_ast(class_def)
     defaults = get_defaults_from_ast(class_def)
     
@@ -18,8 +28,9 @@ def generate_builder(class_def: ast.ClassDef, cls: Type):
     singulars = getattr(cls, "__komodo_singulars__", [])
     
     # Class Builder:
+    builder_class_name = f"{prefix}Builder"
     builder_class = ast.ClassDef(
-        name="Builder",
+        name=builder_class_name,
         bases=[],
         keywords=[],
         body=[
@@ -80,13 +91,13 @@ def generate_builder(class_def: ast.ClassDef, cls: Type):
                 returns=ast.Constant(value=None)
             ))
         else:
-            # def with_name(self, value): self._name = value; return self
+            # def name(self, value): self._name = value; return self
             setter_body = [
                 make_attribute_assign("self", f"_{name}", ast.Name(id="value", ctx=ast.Load())),
                 make_return(ast.Name(id="self", ctx=ast.Load()))
             ]
             builder_class.body.append(make_function(
-                f"with_{name}",
+                name,
                 make_arguments([make_arg("self"), make_arg("value")]),
                 setter_body,
                 returns=ast.Constant(value=None)
@@ -103,7 +114,7 @@ def generate_builder(class_def: ast.ClassDef, cls: Type):
                 ops=[ast.Is()],
                 comparators=[ast.Attribute(value=ast.Name(id="self", ctx=ast.Load()), attr="_UNSET", ctx=ast.Load())]
             )
-            raise_err = make_raise("ValueError", f"{class_def.name}.Builder: required field '{name}' was not set")
+            raise_err = make_raise("ValueError", f"{class_def.name}.{builder_class_name}: required field '{name}' was not set")
             build_body.append(make_if(test=is_unset_check, body=[raise_err]))
             
         build_kwargs.append(ast.keyword(arg=name, value=ast.Attribute(value=ast.Name(id="self", ctx=ast.Load()), attr=f"_{name}", ctx=ast.Load())))
@@ -121,17 +132,18 @@ def generate_builder(class_def: ast.ClassDef, cls: Type):
     builder_class.body.append(make_function("build", make_arguments([make_arg("self")]), build_body, returns=ast.Constant(value=class_def.name)))
     
     # Remove existing Builder if any
-    class_def.body = [n for n in class_def.body if not (isinstance(n, ast.ClassDef) and n.name == "Builder")]
+    class_def.body = [n for n in class_def.body if not (isinstance(n, ast.ClassDef) and n.name == builder_class_name)]
     class_def.body.append(builder_class)
     
     # classmethod builder()
+    builder_method_name = f"{prefix}builder"
     builder_method_body = [
-        make_return(make_call("cls.Builder"))
+        make_return(make_call(f"cls.{builder_class_name}"))
     ]
-    builder_method = make_function("builder", make_arguments([make_arg("cls")]), builder_method_body, returns=ast.Constant(value=None))
+    builder_method = make_function(builder_method_name, make_arguments([make_arg("cls")]), builder_method_body, returns=ast.Constant(value=None))
     builder_method.decorator_list = [ast.Name(id="classmethod", ctx=ast.Load())]
     
-    class_def.body = [n for n in class_def.body if not (isinstance(n, ast.FunctionDef) and n.name == "builder")]
+    class_def.body = [n for n in class_def.body if not (isinstance(n, ast.FunctionDef) and n.name == builder_method_name)]
     class_def.body.append(builder_method)
     
     mark_komodo_meta(cls, "builder")

@@ -161,11 +161,18 @@ Os scopes definem namespaces hierárquicos. Suportam dois estilos sintáticos fu
 }
 ```
 
-**Inline syntax** (útil para poucos campos):
+**Inline syntax** (útil para múltiplos campos):
 
 ```loom
 @db.main { host: "localhost", port: 5432 }
 ```
+
+**Single-value shorthand** (útil para atribuir diretamente a um path):
+
+```loom
+@db.database.host: localhost
+```
+Este shorthand permite omitir o bloco `{}` quando há apenas uma propriedade, ideal para configurações curtas.
 
 Os paths de scope são separados por pontos e podem ter múltiplos níveis:
 
@@ -194,11 +201,14 @@ key: value
 
 #### String
 
-Strings com espaços ou caracteres especiais devem ser entre aspas duplas. Strings alfanuméricas simples podem ser sem aspas.
+Strings suportam aspas duplas `""` ou aspas simples `''`.
+Strings alfanuméricas simples podem ser sem aspas (bare-words). Nessas bare-words, os caracteres de sublinhado (`_`) e hífen (`-`) são automaticamente traduzidos para espaços.
 
 ```loom
 name: "Loom API"
-driver: postgres
+driver: 'postgres'
+message: hello_world     # traduzido para "hello world"
+spacing: hello---world   # traduzido para "hello   world"
 path: "/var/log/app.log"
 ```
 
@@ -544,7 +554,7 @@ scope["host"]     # LoomValue("localhost") — sintaxe alternativa
 
 ## Smart Resolution
 
-O motor de Smart Resolution permite omitir níveis intermédios do path desde que o resultado seja único. É a feature mais poderosa do Loom.
+O motor de Smart Resolution permite omitir níveis intermédios do path desde que o resultado seja único. É a feature mais poderosa do Loom, e utiliza índices em dicionários pré-construídos para garantir que a resolução ocorre em tempo `O(1)`.
 
 A resolução tenta as 4 estratégias em ordem e para na primeira que for determinística.
 

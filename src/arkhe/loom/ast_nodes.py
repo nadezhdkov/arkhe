@@ -17,7 +17,7 @@ from typing import Any, Optional, Union
 #  Source location
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SourceLocation:
     filename: str
     line: int
@@ -31,7 +31,7 @@ class SourceLocation:
 #  Literal value node
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass
+@dataclass(slots=True)
 class LiteralNode:
     """A primitive scalar value: str, int, float, bool, None."""
     value: Any
@@ -45,7 +45,7 @@ class LiteralNode:
 #  List node
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass
+@dataclass(slots=True)
 class ListNode:
     """A list of LiteralNode values."""
     items: list[LiteralNode] = field(default_factory=list)
@@ -59,7 +59,7 @@ class ListNode:
 #  Map node (nested object)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass
+@dataclass(slots=True)
 class MapNode:
     """
     A nested object value: key: { sub_key: value, ... }
@@ -83,7 +83,7 @@ class MapNode:
 #  Property node
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass
+@dataclass(slots=True)
 class PropertyNode:
     """A key: value pair inside a scope or nested map."""
     key: str
@@ -98,7 +98,7 @@ class PropertyNode:
 #  Scope node
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass
+@dataclass(slots=True)
 class ScopeNode:
     """
     A hierarchical namespace block.
@@ -123,7 +123,7 @@ class ScopeNode:
 #  Import node
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass
+@dataclass(slots=True)
 class ImportNode:
     """An @import("path") directive."""
     path: str
@@ -137,7 +137,7 @@ class ImportNode:
 #  Module node (root)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass
+@dataclass(slots=True)
 class ModuleNode:
     """
     Root AST node representing a complete .loom file.

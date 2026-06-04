@@ -199,6 +199,21 @@ s2 = Server("0.0.0.0", 443)
 s3 = Server(host="api.example.com", port=443, debug=True)
 ```
 
+
+**Avançado: AccessLevel e static_name**
+Você pode suprimir ou alterar a visibilidade do construtor usando `access` e criar fábricas estáticas usando `static_name`:
+
+```python
+from arkhe.komodo import komodo, AccessLevel
+
+@komodo.all_args_constructor(access=AccessLevel.PRIVATE, static_name="of")
+class Point:
+    x: float
+    y: float
+
+p = Point.of(1.0, 2.0)
+```
+
 **`__post_init__`**: qualquer um dos três construtores chamará automaticamente `__post_init__` no final do `__init__` gerado, se o método estiver definido na classe:
 
 ```python
@@ -314,9 +329,9 @@ class HttpRequest:
 
 req = (
     HttpRequest.builder()
-        .with_url("https://api.example.com")
-        .with_method("POST")
-        .with_timeout(10.0)
+        .url("https://api.example.com")
+        .method("POST")
+        .timeout(10.0)
         .build()
 )
 
@@ -388,7 +403,7 @@ c.lat = 0.0  # AttributeError: Coordinate is immutable — cannot modify attribu
 Injeta um logger nativo da stdlib `logging` como atributo de classe.
 
 ```python
-@komodo.logger
+@komodo.logger(level=logging.INFO, topic="minha.app")
 @komodo.data
 class Application:
     name: str
@@ -401,7 +416,9 @@ Application.logger.warning(f"App {app.name} v{app.version}")
 
 **Gerado:**
 ```python
-logger = logging.getLogger(f"{__name__}.Application")
+logger = logging.getLogger("minha.app")
+# (injeta automaticamente um StreamHandler se não houver)
+logger.setLevel(logging.INFO)
 ```
 
 O nome do logger é `<module_name>.<ClassName>`.
@@ -593,6 +610,28 @@ assert e == e3
 - `from_json(data: str) -> cls`: classmethod que faz `cls.from_dict(json.loads(data))`
 
 ---
+
+
+### @komodo.to_str
+
+Gera os métodos `__repr__` e `__str__`. Suporta vários parâmetros no estilo Lombok:
+
+- `onlyExplicitlyIncluded` (bool): Apenas inclui os listados em `of`.
+- `callSuper` (bool): Inclui a formatação da superclasse na saída.
+- `includeFieldNames` (bool): Se False, omite "campo=" (ex: `Point(1, 2)`).
+- `doNotUseGetters` (bool): Se True, acessa os campos diretamente mesmo havendo `get_<campo>`.
+- `exclude` (list[str]): Omitir esses campos (útil para senhas).
+- `of` (list[str]): Incluir *apenas* esses campos.
+
+```python
+@komodo.to_str(exclude=["password"])
+@komodo.all_args_constructor
+class User:
+    username: str
+    password: str
+
+print(User("admin", "secret"))  # User(username='admin')
+```
 
 ### @komodo.equals_and_hashcode / @komodo.to_string
 
@@ -895,8 +934,8 @@ class Article:
 
 article = (
     Article.builder()
-        .with_title("AST Metaprogramming in Python")
-        .with_author("Alice")
+        .title("AST Metaprogramming in Python")
+        .author("Alice")
         .tag("python")
         .tag("ast")
         .tag("metaprogramming")
@@ -941,14 +980,14 @@ class User:
 
 user = (
     User.builder()
-        .with_username("alice")
-        .with_email("alice@example.com")
-        .with_age(25)
+        .username("alice")
+        .email("alice@example.com")
+        .age(25)
         .build()
 )
 
 # Falha: campo obrigatório faltando
-User.builder().with_email("bob@example.com").build()
+User.builder().email("bob@example.com").build()
 # ValueError: User.Builder: required field 'username' was not set
 ```
 
@@ -1170,4 +1209,4 @@ from arkhe.patterns import singleton, observable, sealed, deprecated
 ---
 
 *`arkhe.komodo` — Lombok para Python com zero runtime overhead.*  
-*Versão 0.2.1 — Setembro 2024*
+*Versão 0.3.0 — Junho 2026*

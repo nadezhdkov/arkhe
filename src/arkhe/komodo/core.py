@@ -4,7 +4,9 @@ arkhe.komodo.core
 The `komodo` namespace — all class-level annotation decorators live here.
 """
 
-from typing import TypeVar, Callable, Any
+from typing import TypeVar, Callable, Any, overload, Optional, List
+import logging
+from arkhe.komodo.access_level import AccessLevel
 from arkhe.komodo.ast_engine import apply_generator
 from arkhe.komodo.ast_generators.constructor import generate_constructor
 from arkhe.komodo.ast_generators.repr import generate_to_str
@@ -23,102 +25,120 @@ C = TypeVar("C", bound=type)
 
 class _Komodo:
 
+    @overload
     @staticmethod
-    def data(cls: C) -> C:
-        """
-        Generates:
+    def data(cls: C) -> C: ...
 
-        - all-args constructor (__init__)
-        - __str__()
-        - __eq__()
-        - __hash__()
-
-        Similar to Lombok @Data.
-
-        Example:
-            @komodo.data
-            class User:
-                name: str
-                age: int
-        """
-        cls = _Komodo.all_args_constructor(cls)
-        cls = _Komodo.to_str(cls)
-        cls = _Komodo.eq(cls)
-        from arkhe.komodo.ast_generators.utils import mark_komodo_meta
-        mark_komodo_meta(cls, "data")
-        return cls
+    @overload
+    @staticmethod
+    def data(*, static_constructor: Optional[str] = None) -> Callable[[C], C]: ...
 
     @staticmethod
-    def value(cls: C) -> C:
+    def data(cls: Optional[C] = None, *, static_constructor: Optional[str] = None) -> Any:
         """
-        Generates:
-
-        - all-args constructor
-        - __str__()
-        - __eq__()
-        - __hash__()
-        - immutable fields
-
-        Similar to Lombok @Value.
+        Generates data class features.
         """
-        cls = _Komodo.data(cls)
-        cls = _Komodo.immutable(cls)
-        from arkhe.komodo.ast_generators.utils import mark_komodo_meta
-        mark_komodo_meta(cls, "value")
-        return cls
+        def wrapper(c: C) -> C:
+            c = _Komodo.all_args_constructor(c, static_name=static_constructor)
+            c = _Komodo.to_str(c)
+            c = _Komodo.eq(c)
+            from arkhe.komodo.ast_generators.utils import mark_komodo_meta
+            mark_komodo_meta(c, "data")
+            return c
+        return wrapper(cls) if cls is not None else wrapper
+
+    @overload
+    @staticmethod
+    def value(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def value(*, static_constructor: Optional[str] = None) -> Callable[[C], C]: ...
 
     @staticmethod
-    def no_args_constructor(cls: C) -> C:
+    def value(cls: Optional[C] = None, *, static_constructor: Optional[str] = None) -> Any:
         """
-        Generates an empty constructor.
+        Generates value class features.
+        """
+        def wrapper(c: C) -> C:
+            c = _Komodo.data(c, static_constructor=static_constructor)
+            c = _Komodo.immutable(c)
+            from arkhe.komodo.ast_generators.utils import mark_komodo_meta
+            mark_komodo_meta(c, "value")
+            return c
+        return wrapper(cls) if cls is not None else wrapper
 
-        Example:
-            User()
-        """
-        cls = apply_generator(cls, lambda c, t: generate_constructor(c, t, "no_args"))
-        return cls
+    @overload
+    @staticmethod
+    def no_args_constructor(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def no_args_constructor(*, access: AccessLevel = AccessLevel.PUBLIC, static_name: Optional[str] = None) -> Callable[[C], C]: ...
 
     @staticmethod
-    def required_args_constructor(cls: C) -> C:
+    def no_args_constructor(cls: Optional[C] = None, *, access: AccessLevel = AccessLevel.PUBLIC, static_name: Optional[str] = None) -> Any:
         """
-        Generates a constructor containing only required fields.
-
-        Fields with default values are ignored.
-
-        Example:
-            >>> @komodo.required_args_constructor
-            ... class User:
-            ...     name: str
-            ...     age: int = 20
-            ...
-            >>> user = User("Mark")
-            >>> print(user.name)
-            Mark
+        Generates no_args_constructor.
         """
-        cls = apply_generator(cls, lambda c, t: generate_constructor(c, t, "required"))
-        return cls
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_constructor(ast_cls, t, "no_args", access, static_name))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
+
+    @overload
+    @staticmethod
+    def required_args_constructor(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def required_args_constructor(*, access: AccessLevel = AccessLevel.PUBLIC, static_name: Optional[str] = None) -> Callable[[C], C]: ...
 
     @staticmethod
-    def all_args_constructor(cls: C) -> C:
+    def required_args_constructor(cls: Optional[C] = None, *, access: AccessLevel = AccessLevel.PUBLIC, static_name: Optional[str] = None) -> Any:
         """
-        Generates a constructor containing all annotated fields.
+        Generates required_args_constructor.
+        """
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_constructor(ast_cls, t, "required", access, static_name))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
 
-        Example:
-            User(name, age)
-        """
-        cls = apply_generator(cls, lambda c, t: generate_constructor(c, t, "all"))
-        return cls
+    @overload
+    @staticmethod
+    def all_args_constructor(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def all_args_constructor(*, access: AccessLevel = AccessLevel.PUBLIC, static_name: Optional[str] = None) -> Callable[[C], C]: ...
 
     @staticmethod
-    def to_str(cls: C) -> C:
+    def all_args_constructor(cls: Optional[C] = None, *, access: AccessLevel = AccessLevel.PUBLIC, static_name: Optional[str] = None) -> Any:
         """
-        Generates a readable __str__() implementation.
+        Generates all_args_constructor.
+        """
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_constructor(ast_cls, t, "all", access, static_name))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
 
-        Example:
-            User(name='John', age=20)
+    @overload
+    @staticmethod
+    def to_str(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def to_str(*, onlyExplicitlyIncluded: bool = False, callSuper: bool = False, includeFieldNames: bool = True, doNotUseGetters: bool = False, exclude: Optional[List[str]] = None, of: Optional[List[str]] = None) -> Callable[[C], C]: ...
+
+    @staticmethod
+    def to_str(cls: Optional[C] = None, *, onlyExplicitlyIncluded: bool = False, callSuper: bool = False, includeFieldNames: bool = True, doNotUseGetters: bool = False, exclude: Optional[List[str]] = None, of: Optional[List[str]] = None) -> Any:
         """
-        cls = apply_generator(cls, generate_to_str)
-        return cls
+        Generates __str__.
+        """
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_to_str(ast_cls, t, onlyExplicitlyIncluded, callSuper, includeFieldNames, doNotUseGetters, exclude, of))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
 
     @staticmethod
     def eq(cls: C) -> C:
@@ -136,19 +156,23 @@ class _Komodo:
         cls = apply_generator(cls, generate_immutable)
         return cls
 
+    @overload
     @staticmethod
-    def builder(cls: C) -> C:
+    def builder(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def builder(*, access: AccessLevel = AccessLevel.PUBLIC) -> Callable[[C], C]: ...
+
+    @staticmethod
+    def builder(cls: Optional[C] = None, *, access: AccessLevel = AccessLevel.PUBLIC) -> Any:
         """
         Generates a fluent Builder API.
-
-        Example:
-            User.builder()\
-                .with_name("John")\
-                .with_age(20)\
-                .build()
         """
-        cls = apply_generator(cls, generate_builder)
-        return cls
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_builder(ast_cls, t, access))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
 
     @staticmethod
     def singular(field_name: str) -> Callable[[C], C]:
@@ -197,27 +221,41 @@ class _Komodo:
             return cls
         return decorator
 
+    @overload
     @staticmethod
-    def getter(cls: C) -> C:
+    def getter(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def getter(*, access: AccessLevel = AccessLevel.PUBLIC) -> Callable[[C], C]: ...
+
+    @staticmethod
+    def getter(cls: Optional[C] = None, *, access: AccessLevel = AccessLevel.PUBLIC) -> Any:
         """
         Generates get_<field>() methods.
-
-        Example:
-            user.get_name()
         """
-        cls = apply_generator(cls, lambda c, t: generate_accessors(c, t, False, True, False, False))
-        return cls
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_accessors(ast_cls, t, False, True, False, False, access))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
+
+    @overload
+    @staticmethod
+    def setter(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def setter(*, access: AccessLevel = AccessLevel.PUBLIC) -> Callable[[C], C]: ...
 
     @staticmethod
-    def setter(cls: C) -> C:
+    def setter(cls: Optional[C] = None, *, access: AccessLevel = AccessLevel.PUBLIC) -> Any:
         """
         Generates set_<field>(value) methods.
-
-        Example:
-            user.set_name("John")
         """
-        cls = apply_generator(cls, lambda c, t: generate_accessors(c, t, False, False, True, False))
-        return cls
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_accessors(ast_cls, t, False, False, True, False, access))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
 
     @staticmethod
     def withers(cls: C) -> C:
@@ -230,16 +268,23 @@ class _Komodo:
         cls = apply_generator(cls, lambda c, t: generate_accessors(c, t, False, False, False, True))
         return cls
 
+    @overload
     @staticmethod
-    def logger(cls: C) -> C:
-        """
-        Injects a logger instance into the class.
+    def logger(cls: C) -> C: ...
 
-        Example:
-            self.logger.info("message")
+    @overload
+    @staticmethod
+    def logger(*, level: int = logging.DEBUG, topic: Optional[str] = None) -> Callable[[C], C]: ...
+
+    @staticmethod
+    def logger(cls: Optional[C] = None, *, level: int = logging.DEBUG, topic: Optional[str] = None) -> Any:
         """
-        cls = apply_generator(cls, generate_logger)
-        return cls
+        Injects a logger instance.
+        """
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_logger(ast_cls, t, level, topic))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
 
     @staticmethod
     def non_null(cls: C) -> C:
@@ -324,13 +369,23 @@ class _Komodo:
         cls = apply_generator(cls, generate_eq_hash)
         return cls
 
+    @overload
     @staticmethod
-    def to_string(cls: C) -> C:
+    def to_string(cls: C) -> C: ...
+
+    @overload
+    @staticmethod
+    def to_string(*, onlyExplicitlyIncluded: bool = False, callSuper: bool = False, includeFieldNames: bool = True, doNotUseGetters: bool = False, exclude: Optional[List[str]] = None, of: Optional[List[str]] = None) -> Callable[[C], C]: ...
+
+    @staticmethod
+    def to_string(cls: Optional[C] = None, *, onlyExplicitlyIncluded: bool = False, callSuper: bool = False, includeFieldNames: bool = True, doNotUseGetters: bool = False, exclude: Optional[List[str]] = None, of: Optional[List[str]] = None) -> Any:
         """
         Alias for @komodo.to_str.
         """
-        cls = apply_generator(cls, generate_to_str)
-        return cls
+        def wrapper(c: C) -> C:
+            c = apply_generator(c, lambda ast_cls, t: generate_to_str(ast_cls, t, onlyExplicitlyIncluded, callSuper, includeFieldNames, doNotUseGetters, exclude, of))
+            return c
+        return wrapper(cls) if cls is not None else wrapper
 
 
 komodo = _Komodo()

@@ -128,6 +128,18 @@ DB_POOL_MAX_SIZE
 
 ---
 
+## Leaf Key Direct Resolution
+
+You can completely bypass the intermediate segments and just ask for the last key, assuming it's unique enough for your needs.
+
+```python
+env.max_size
+```
+
+Automatically searches for the most relevant variable ending with `MAX_SIZE`. If `DB_POOL_MAX_SIZE` is the only match, it resolves successfully.
+
+---
+
 # Lazy Resolution
 
 Variables are only fetched from `os.environ` when needed.

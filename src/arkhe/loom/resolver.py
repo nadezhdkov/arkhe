@@ -85,6 +85,12 @@ class Resolver:
         # Default scope per module: module_name → scope_path_str
         self._default_scopes: dict[str, str] = {}
 
+        # ── O(1) indexes ─────────────────────────────────────────────────
+        # Strategy 2: (module_name, key) → list[_Entry]
+        self._by_module_key: dict[tuple[str, str], list[_Entry]] = {}
+        # Strategy 4: key → list[_Entry]
+        self._by_key: dict[str, list[_Entry]] = {}
+
     # ── ingestion ─────────────────────────────────────────────────────────────
 
     def load_module(self, module: ModuleNode) -> None:
@@ -171,13 +177,26 @@ class Resolver:
             - key="pool.max", value=10     (leaf, for deep flattened access)
         """
         # Always index the value itself (even if it's a dict)
-        self._index.append(_Entry(
+        entry = _Entry(
             module_name=module_name,
             scope_path=scope_path,
             key=key,
             value=value,
             is_default_scope=is_default,
-        ))
+        )
+        self._index.append(entry)
+
+        # ── Populate O(1) indexes ────────────────────────────────────────
+        mk = (module_name, key)
+        if mk in self._by_module_key:
+            self._by_module_key[mk].append(entry)
+        else:
+            self._by_module_key[mk] = [entry]
+
+        if key in self._by_key:
+            self._by_key[key].append(entry)
+        else:
+            self._by_key[key] = [entry]
 
         # Recursively flatten nested dicts
         if isinstance(value, dict):
@@ -308,6 +327,8 @@ class Resolver:
         """
         parts = ["database", "host"]
         Searches all entries in module "database" for key "host".
+
+        Uses O(1) dict lookup via _by_module_key.
         """
         if len(parts) < 2:
             return None
@@ -321,11 +342,16 @@ class Resolver:
         key = key_parts[-1]
         scope_prefix = ".".join(key_parts[:-1]) if len(key_parts) > 1 else ""
 
-        candidates = [
-            e for e in self._index
-            if e.module_name == module_name and e.key == key
-            and (not scope_prefix or e.scope_str == scope_prefix)
-        ]
+        # O(1) lookup instead of scanning the entire _index
+        all_entries = self._by_module_key.get((module_name, key))
+        if not all_entries:
+            return None
+
+        # Filter by scope prefix if provided
+        if scope_prefix:
+            candidates = [e for e in all_entries if e.scope_str == scope_prefix]
+        else:
+            candidates = all_entries
 
         if not candidates:
             return None
@@ -399,12 +425,15 @@ class Resolver:
     def _try_global_flattened(self, parts: list[str]) -> Optional[Any]:
         """
         parts = ["port"]  →  searches for "port" globally across all modules.
+
+        Uses O(1) dict lookup via _by_key.
         """
         if len(parts) != 1:
             return None
 
         key = parts[0]
-        candidates = [e for e in self._index if e.key == key]
+        # O(1) lookup instead of scanning the entire _index
+        candidates = self._by_key.get(key)
 
         if not candidates:
             return None

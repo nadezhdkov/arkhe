@@ -39,6 +39,11 @@ from arkhe import yaml
 host = yaml.database.host
 max_pool = yaml.database.pool.max_size
 
+# Leaf Key Direct Resolution!
+# You can bypass intermediate paths completely if the key is globally unique
+host_direct = yaml.host
+max_direct = yaml.max_size
+
 # You can even extract a sub-dictionary as an object (DotDict)
 pool_cfg = yaml.database.pool
 print(pool_cfg.min_size)
@@ -55,7 +60,7 @@ When Arkhe scans your directories, it generates two files inside the hidden `.ar
 2. `yaml_metadata.json`: A state-tracker recording the last modified timestamps (`st_mtime`) of every file.
 
 **The result?** 
-- Lookup times are **O(1)**.
+- Lookup times are strictly **O(1)** due to internal dictionary-based indexes (`_by_key` and `_by_module_key`).
 - If you restart your application, Arkhe loads the cache in milliseconds.
 - If a single YAML file is modified, Arkhe *only* re-parses that specific file, ignoring the rest of your project.
 

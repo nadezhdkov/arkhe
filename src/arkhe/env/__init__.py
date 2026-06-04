@@ -71,7 +71,12 @@ class DotEnv:
         return DotEnv(new_prefix, sep)
 
     def _key(self) -> str:
-        return object.__getattribute__(self, "_prefix")
+        k = object.__getattribute__(self, "_prefix")
+        if k not in os.environ:
+            resolved = Env.resolve_leaf(k)
+            if resolved:
+                return resolved
+        return k
 
     # ------------------------------------------------------------------
     # Attribute access
@@ -199,6 +204,23 @@ class Env:
 
     _loaded: bool      = False
     _masked: set[str]  = set()
+    _leaf_index: dict[str, str] = {}
+    _env_size: int     = -1
+
+    @classmethod
+    def _rebuild_leaf_index(cls) -> None:
+        cls._leaf_index.clear()
+        for k in os.environ:
+            parts = k.split("_")
+            if parts:
+                cls._leaf_index[parts[-1]] = k
+        cls._env_size = len(os.environ)
+
+    @classmethod
+    def resolve_leaf(cls, key: str) -> Optional[str]:
+        if cls._env_size != len(os.environ):
+            cls._rebuild_leaf_index()
+        return cls._leaf_index.get(key)
 
     # ------------------------------------------------------------------
     # Lifecycle

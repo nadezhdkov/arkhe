@@ -8,7 +8,7 @@
 ## Importação
 
 ```python
-from arkhe.net import request, API
+from arkhe.net import request, API, HttpStatus, api, get, post
 ```
 
 ---
@@ -109,6 +109,10 @@ request(url).json({"name": "Alice", "role": "admin"}).post()
 # Form URL-encoded
 request(url).form({"username": "alice", "password": "secret"}).post()
 
+# Multipart Form-Data (Upload de Ficheiros)
+request(url).multipart().field("user", "alice").file("avatar", "avatar.png").post()
+# Nota: Chamar .field() ou .file() activa automaticamente o modo multipart.
+
 # Texto ou bytes brutos
 request(url).body("raw content", content_type="text/plain").post()
 request(url).body(b"\x00\x01\x02", content_type="application/octet-stream").put()
@@ -162,7 +166,11 @@ A cache aplica-se apenas a pedidos GET.
 r = request(url).get()
 
 r.status       # int — código HTTP (200, 404, 500…)
-r.success      # bool — True se 200 ≤ status < 300
+r.success      # bool — alias is_success
+r.is_success   # bool — True se 200 ≤ status < 300
+r.is_redirect  # bool — True se 300 ≤ status < 400
+r.is_client_error # bool — True se 400 ≤ status < 500
+r.is_server_error # bool — True se 500 ≤ status < 600
 r.ok           # alias de success
 r.error        # bool — True se houve excepção de rede
 r.exception    # BaseException | None
@@ -175,7 +183,10 @@ r.url          # str — URL final (após redirects)
 r.elapsed_ms   # float — tempo de execução em ms
 bool(r)        # True se success
 
-r.raise_for_status()  # lança NetError se status >= 400
+r.raise_for_status()  # lança UnexpectedStatusError se status >= 400
+
+# Conversão directa para objectos Python (exige arkhe.json)
+user = r.into(User)
 ```
 
 ---
@@ -188,9 +199,9 @@ r = request(url).get()
 if r.error:
     print(type(r.exception).__name__, r.exception)
 
-# Validação de status com expect()
+# Validação de status com expect() usando o enum HttpStatus
 try:
-    request(url).expect(200, 201).post()
+    request(url).expect(HttpStatus.OK, HttpStatus.CREATED).post()
 except UnexpectedStatusError as e:
     print(e.response.status, e.expected)
 
@@ -310,8 +321,41 @@ api.post("/repos", json={"name": "my-new-repo", "private": False})
 api.request("/search/repositories") \
    .param("q", "arkhe") \
    .param("sort", "stars") \
-   .expect(200) \
+   .expect(HttpStatus.OK) \
    .get()
+
+# Interceptors de Request e Response
+api.add_interceptor(lambda req: print(f"A chamar: {req._url}"))
+api.add_response_interceptor(lambda resp: print(f"Recebido {resp.status} em {resp.elapsed_ms}ms"))
+```
+
+---
+
+## API Declarativa (Decorators)
+
+Podes definir clientes HTTP de forma declarativa e fortemente tipada (inspirado no Retrofit/Feign), delegando a execução automática para o `API` interno:
+
+```python
+from arkhe.net import api, get, post
+from arkhe.json import json_serializable
+
+@json_serializable
+class User:
+    id: int
+    name: str
+
+@api("https://api.github.com")
+class GithubClient:
+    
+    @get("/users/{username}")
+    def get_user(self, username: str) -> User:
+        pass
+        
+client = GithubClient()
+
+# Executa um GET para /users/octocat e devolve o objecto User tipado usando .into()
+user = client.get_user(username="octocat")
+print(user.name)
 ```
 
 ---
@@ -363,6 +407,7 @@ print(r.status, r.json)
 | `TimeoutError` | Pedido excedeu o timeout |
 | `UnexpectedStatusError` | Status não está nos esperados por `.expect()` |
 | `DownloadError` | Erro ao guardar ficheiro em disco |
+| `UploadError` | Erro ao ler ficheiro durante multipart upload |
 
 ---
 
@@ -377,6 +422,9 @@ print(r.status, r.json)
 | `.param(k, v)` / `.params({})` | Query parameters |
 | `.json(data)` | Corpo JSON |
 | `.form(data)` | Corpo form URL-encoded |
+| `.multipart()` | Corpo multipart/form-data |
+| `.field(k, v)` | Adiciona campo multipart |
+| `.file(k, p)` | Adiciona ficheiro multipart |
 | `.body(raw, ct)` | Corpo bruto (str ou bytes) |
 | `.timeout(s)` | Timeout em segundos |
 | `.retry(n, delay, exponential)` | Retry automático |

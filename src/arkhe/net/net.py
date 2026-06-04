@@ -55,6 +55,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json as _json_mod
+import mimetypes
 import os
 import ssl
 import threading
@@ -67,8 +68,10 @@ from http.cookiejar import CookieJar
 from pathlib import Path
 from typing import (
     Any, Callable, Dict, List, Optional,
-    Tuple, Type, Union,
+    Tuple, Type, Union, TypeVar
 )
+
+T = TypeVar("T")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -107,6 +110,10 @@ class UnexpectedStatusError(NetError):
 
 class DownloadError(NetError):
     """Erro durante download de ficheiro."""
+
+
+class UploadError(NetError):
+    """Erro durante upload de ficheiro."""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -259,7 +266,23 @@ class Response:
 
     @property
     def success(self) -> bool:
+        return self.is_success
+
+    @property
+    def is_success(self) -> bool:
         return 200 <= self._status < 300
+
+    @property
+    def is_redirect(self) -> bool:
+        return 300 <= self._status < 400
+
+    @property
+    def is_client_error(self) -> bool:
+        return 400 <= self._status < 500
+
+    @property
+    def is_server_error(self) -> bool:
+        return 500 <= self._status < 600
 
     @property
     def ok(self) -> bool:
@@ -314,12 +337,28 @@ class Response:
     # ── helpers ───────────────────────────────────────────────────────────────
 
     def raise_for_status(self) -> "Response":
-        """Lança NetError se status >= 400."""
+        """Lança UnexpectedStatusError se status >= 400."""
         if self._status >= 400:
-            raise NetError(
-                f"HTTP {self._status} — {self._url}"
-            )
+            raise UnexpectedStatusError(self, ())
         return self
+
+    def into(self, cls: Type[T]) -> T:
+        """
+        Converte o corpo JSON diretamente num objecto Python tipado,
+        usando a engine `arkhe.json`.
+        """
+        data = self.json
+        if data is None:
+            raise NetError(f"Cannot convert non-JSON response into {cls}")
+            
+        try:
+            from arkhe.json import Json
+            return Json.from_dict(data, cls)
+        except ImportError:
+            raise ImportError(
+                "arkhe.json is required to use Response.into(). "
+                "Ensure arkhe.json is available in your environment."
+            )
 
     def __repr__(self) -> str:
         flag = "✓" if self.success else "✗"
@@ -368,11 +407,20 @@ class Request:
         self._follow_redirects: bool                      = True
         self._verify_ssl:      bool                       = True
 
+        # Multipart
+        self._is_multipart:    bool                       = False
+        self._multipart_fields: Dict[str, str]            = {}
+        self._multipart_files: Dict[str, Path]            = {}
+
         # Hooks
         self._on_success_cbs:  List[Callable[["Response"], Any]] = []
         self._on_error_cbs:    List[Callable[[BaseException], Any]] = []
         self._on_timeout_cbs:  List[Callable[[], Any]] = []
         self._status_hooks:    Dict[int, List[Callable[["Response"], Any]]] = {}
+
+        # Interceptors
+        self._req_interceptors: List[Callable[["Request"], None]] = []
+        self._resp_interceptors: List[Callable[["Response"], None]] = []
 
     # ── headers ───────────────────────────────────────────────────────────────
 
@@ -440,6 +488,63 @@ class Request:
         self._body         = raw
         self._content_type = content_type
         return self
+
+    # ── multipart ─────────────────────────────────────────────────────────────
+
+    def multipart(self) -> "Request":
+        """Prepara o request para envio multipart/form-data."""
+        self._is_multipart = True
+        return self
+
+    def field(self, name: str, value: Any) -> "Request":
+        """Adiciona um campo de formulário multipart."""
+        self.multipart()
+        self._multipart_fields[name] = str(value)
+        return self
+
+    def file(self, name: str, path: Union[str, Path]) -> "Request":
+        """Adiciona um ficheiro para upload multipart."""
+        self.multipart()
+        self._multipart_files[name] = Path(path)
+        return self
+
+    def _build_multipart_body(self) -> None:
+        """Constrói o payload multipart internamente."""
+        import secrets
+        boundary = secrets.token_hex(16)
+        lines: List[bytes] = []
+
+        # Campos normais
+        for name, value in self._multipart_fields.items():
+            lines.append(f"--{boundary}".encode("utf-8"))
+            lines.append(f'Content-Disposition: form-data; name="{name}"'.encode("utf-8"))
+            lines.append(b"")
+            lines.append(value.encode("utf-8"))
+
+        # Ficheiros
+        for name, path in self._multipart_files.items():
+            if not path.exists():
+                raise UploadError(f"File not found for upload: {path}")
+            
+            filename = path.name
+            mime_type, _ = mimetypes.guess_type(str(path))
+            if mime_type is None:
+                mime_type = "application/octet-stream"
+
+            lines.append(f"--{boundary}".encode("utf-8"))
+            lines.append(f'Content-Disposition: form-data; name="{name}"; filename="{filename}"'.encode("utf-8"))
+            lines.append(f'Content-Type: {mime_type}'.encode("utf-8"))
+            lines.append(b"")
+            try:
+                lines.append(path.read_bytes())
+            except OSError as exc:
+                raise UploadError(f"Failed to read file {path}: {exc}") from exc
+
+        lines.append(f"--{boundary}--".encode("utf-8"))
+        lines.append(b"")
+
+        self._body = b"\r\n".join(lines)
+        self._content_type = f"multipart/form-data; boundary={boundary}"
 
     # ── comportamento ─────────────────────────────────────────────────────────
 
@@ -751,6 +856,12 @@ class Request:
 
     def _do_request(self, method: str) -> Tuple[Optional[Response], Optional[BaseException]]:
         """Executa uma única tentativa HTTP."""
+        for interceptor in self._req_interceptors:
+            interceptor(self)
+
+        if self._is_multipart:
+            self._build_multipart_body()
+
         url = self._build_url()
         t0  = time.perf_counter()
 
@@ -797,13 +908,16 @@ class Request:
                 final_url = resp.url
 
             elapsed = (time.perf_counter() - t0) * 1000
-            return Response(
+            resp = Response(
                 status     = status,
                 body       = body,
                 headers    = raw_hdrs,
                 url        = final_url,
                 elapsed_ms = elapsed,
-            ), None
+            )
+            for interceptor in self._resp_interceptors:
+                interceptor(resp)
+            return resp, None
 
         except urllib.error.HTTPError as exc:
             elapsed = (time.perf_counter() - t0) * 1000
@@ -811,13 +925,16 @@ class Request:
                 body = exc.read()
             except Exception:
                 body = b""
-            return Response(
+            resp = Response(
                 status     = exc.code,
                 body       = body,
                 headers    = dict(exc.headers) if exc.headers else {},
                 url        = url,
                 elapsed_ms = elapsed,
-            ), None
+            )
+            for interceptor in self._resp_interceptors:
+                interceptor(resp)
+            return resp, None
 
         except urllib.error.URLError as exc:
             elapsed = (time.perf_counter() - t0) * 1000
@@ -887,6 +1004,8 @@ class API:
         self._default_to:   float           = 30.0
         self._default_retry: int            = 0
         self._default_retry_delay: float    = 0.5
+        self._req_interceptors: List[Callable[["Request"], None]] = []
+        self._resp_interceptors: List[Callable[["Response"], None]] = []
 
     # ── configuração da sessão ────────────────────────────────────────────────
 
@@ -923,6 +1042,18 @@ class API:
         self._default_retry_delay = delay
         return self
 
+    # ── interceptors ──────────────────────────────────────────────────────────
+
+    def add_interceptor(self, fn: Callable[["Request"], None]) -> "API":
+        """Adiciona um interceptor de request executado antes de cada pedido."""
+        self._req_interceptors.append(fn)
+        return self
+
+    def add_response_interceptor(self, fn: Callable[["Response"], None]) -> "API":
+        """Adiciona um interceptor de response executado após receber a resposta."""
+        self._resp_interceptors.append(fn)
+        return self
+
     # ── métodos HTTP ──────────────────────────────────────────────────────────
 
     def _build(self, path: str) -> Request:
@@ -932,6 +1063,8 @@ class API:
         req._timeout_s      = self._default_to
         req._retry_attempts = self._default_retry
         req._retry_delay    = self._default_retry_delay
+        req._req_interceptors = list(self._req_interceptors)
+        req._resp_interceptors = list(self._resp_interceptors)
         return req
 
     def get(self, path: str = "", **kwargs: Any) -> Response:
