@@ -1,16 +1,16 @@
 """
-Nestifypy Quickstart Example
+Arkhe Quickstart Example
 """
 
-from nestifypy.slogger import Logger, Constants
-from nestifypy.decorators import benchmark, cache, retry, event, emit
-from nestifypy.types import Vector2, Color, Rect
-from nestifypy.utils import Strings, Random, Math, Time, Validator
-from nestifypy.console import Console
-from nestifypy.flow import Flow
+from arkhe.slogger import Logger, Constants
+from arkhe.decorators import benchmark, cache, retry, event, emit
+from arkhe.types import Vector2, Color, Rect
+from arkhe.utils import Strings, Random, Math, Time, Validator
+from arkhe.console import Console
+from arkhe.flow import Flow
 
 # Logger
-Logger.info("Nestifypy starting up!")
+Logger.info("Arkhe starting up!")
 Logger.warn("Watch out!")
 Logger.success("Ready!")
 
@@ -44,7 +44,7 @@ rect = Rect(0, 0, 100, 100)
 Logger.debug(f"Contains (50,50): {rect.contains(50, 50)}")
 
 # Utils
-Logger.info(Strings.slugify("Hello World! This is Nestifypy."))
+Logger.info(Strings.slugify("Hello World! This is Arkhe."))
 Logger.info(f"UUID: {Random.uuid()}")
 Logger.info(f"Clamped: {Math.clamp(150, 0, 100)}")
 Logger.info(f"Now: {Time.format()}")
@@ -64,7 +64,7 @@ Console.table(
         {"module": "pyunix",     "status": "planned", "phase": 2},
         {"module": "ai",         "status": "planned", "phase": 5},
     ],
-    title="Nestifypy Modules",
+    title="Arkhe Modules",
 )
 Console.rule()
 

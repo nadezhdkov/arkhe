@@ -1,6 +1,6 @@
-# nestifypy.pyunix — Documentação Completa
+# arkhe.pyunix — Documentação Completa
 
-> **pyunix** é a camada de desenvolvimento de jogos da biblioteca `nestifypy`. Ela envolve o `pygame` com uma API de alto nível inspirada em Unity e Godot, permitindo criar jogos 2D com muito menos código boilerplate.
+> **pyunix** é a camada de desenvolvimento de jogos da biblioteca `arkhe`. Ela envolve o `pygame` com uma API de alto nível inspirada em Unity e Godot, permitindo criar jogos 2D com muito menos código boilerplate.
 
 ---
 
@@ -34,7 +34,7 @@
 ## 1. Instalação e Requisitos
 
 ```bash
-pip install nestifypy pygame
+pip install arkhe pygame
 ```
 
 O `pygame` é a única dependência obrigatória. Algumas funcionalidades opcionais (como variação de pitch no áudio) também requerem `numpy`.
@@ -49,7 +49,7 @@ A pyunix é composta por módulos independentes que colaboram entre si. O fluxo 
 @Game(...)          ← configura a janela e o loop
   @Game.start       ← carrega recursos, cria entidades
   @Game.update(dt)  ← lógica por frame
-  @Game.draw(screen)← renderização por frame
+  @Game.draw()← renderização por frame
 ```
 
 Todos os singletons globais (`Camera`, `Input`, `Audio`, `Assets`, `Timer`, `Event`, `PhysicsWorld`, `Scene`, `Save`) são importados diretamente dos módulos correspondentes e já estão prontos para uso — sem necessidade de instanciar nada manualmente.
@@ -58,15 +58,16 @@ Todos os singletons globais (`Camera`, `Input`, `Audio`, `Assets`, `Timer`, `Eve
 
 ## 3. Game — O Loop Principal
 
-**Módulo:** `nestifypy.pyunix.app`
+**Módulo:** `arkhe.pyunix.app`
 
 O decorator `@Game(...)` transforma uma classe Python comum em um jogo completo com janela, loop de eventos, física e renderização.
 
 ### Uso básico
 
 ```python
-from nestifypy.pyunix.app import Game
-from nestifypy.pyunix.window import Window
+from arkhe.pyunix.app import Game
+from arkhe.pyunix.render.canvas import Canvas
+from arkhe.pyunix.window import Window
 
 @Game(title="Meu Jogo", size=(800, 600), fps=60)
 class MeuJogo:
@@ -82,9 +83,9 @@ class MeuJogo:
         pass
 
     @Game.draw
-    def on_draw(self, screen):
+    def on_draw(self):
         # chamado todo frame para renderização
-        screen.fill((30, 30, 40))  # limpa a tela
+        Canvas.clear((30, 30, 40))  # limpa a tela
 
 MeuJogo().run()
 ```
@@ -109,7 +110,7 @@ MeuJogo().run()
 @Game.stop           # uma vez, ao encerrar
 @Game.update         # todo frame — recebe `dt` (float)
 @Game.fixed_update   # taxa fixa (física) — sem parâmetros
-@Game.draw           # todo frame — recebe `screen` (Surface)
+@Game.draw           # todo frame para renderização
 @Game.on_pause       # quando o jogo é pausado (ESC)
 @Game.on_resume      # quando o jogo é despausado
 ```
@@ -120,16 +121,16 @@ Organize o que é desenhado primeiro com `@Game.layer(nome, order=N)`. Layers co
 
 ```python
 @Game.layer("fundo", order=0)
-def draw_fundo(self, screen):
-    screen.blit(self.bg, (0, 0))
+def draw_fundo(self):
+    Draw.image(self.bg, 0, 0)
 
 @Game.layer("entidades", order=1)
-def draw_entidades(self, screen):
-    self.enemies.draw(screen, Camera.offset)
+def draw_entidades(self):
+    self.enemies.draw(Camera.offset)
 
 @Game.layer("ui", order=2)
-def draw_ui(self, screen):
-    self.hud.draw(screen)
+def draw_ui(self):
+    self.hud.draw()
 ```
 
 ### Labels de Texto Automáticos
@@ -161,16 +162,16 @@ Pressione **ESC** para pausar/despausar o jogo.
 
 ## 4. Entity e Sprite — Objetos do Jogo
 
-**Módulo:** `nestifypy.pyunix.sprite`
+**Módulo:** `arkhe.pyunix.sprite`
 
 `Entity` é a classe base de todos os objetos do jogo. Herdar dela e usar os decorators `@Sprite.*` é o jeito pyunix de criar personagens, inimigos, projéteis, etc.
 
 ### Criando uma Entidade
 
 ```python
-from nestifypy.pyunix.sprite import Entity, Sprite, SpriteGroup
-from nestifypy.pyunix.input import Input
-from nestifypy.pyunix.camera import Camera
+from arkhe.pyunix.sprite import Entity, Sprite, SpriteGroup
+from arkhe.pyunix.input import Input
+from arkhe.pyunix.camera import Camera
 
 class Jogador(Entity):
 
@@ -188,8 +189,8 @@ class Jogador(Entity):
         self.y += v * self.velocidade * dt
 
     @Sprite.draw
-    def renderizar(self, surface):
-        self.draw_self(surface, Camera.offset)
+    def renderizar(self):
+        self.draw_self(Camera.offset)
 
     @Sprite.on_collision_enter
     def ao_colidir(self, info):
@@ -203,7 +204,7 @@ class Jogador(Entity):
 | `@Sprite.ready` | Uma vez, ao construir a entidade |
 | `@Sprite.update` | Todo frame (recebe `dt`) |
 | `@Sprite.fixed_update` | Na taxa fixa de física |
-| `@Sprite.draw` | Todo frame para renderização (recebe `surface`) |
+| `@Sprite.draw` | Todo frame para renderização |
 | `@Sprite.destroy` | Antes da entidade ser removida |
 | `@Sprite.on_collision_enter` | Primeiro frame de colisão (recebe `CollisionInfo`) |
 | `@Sprite.on_collision_stay` | Cada frame enquanto colide (recebe `CollisionInfo`) |
@@ -231,7 +232,7 @@ entity.tint = Color(255, 100, 100)  # colorização vermelha
 entity.image = alguma_surface
 
 # Utilitários
-entity.draw_self(surface, offset)  # renderiza respeitando rotação, escala, alpha, tint
+entity.draw_self(offset)  # renderiza respeitando rotação, escala, alpha, tint
 entity.collides_with(outro)        # AABB simples sem physics
 entity.distance_to(outro)          # distância em pixels
 entity.destroy()                   # remove do jogo
@@ -240,11 +241,11 @@ entity.destroy()                   # remove do jogo
 entity.set_velocity(vx, vy)
 entity.add_force(Vector2(0, -500))
 
-# Componentes customizados
-entity.add_component("saude", SistemaDeVida())
-entity.get_component("saude")
-entity.has_component("saude")
-entity.remove_component("saude")
+# Componentes customizados (Unity-style ECS)
+entity.add_component(Health(100))
+entity.get_component(Health)
+entity.has_component(Health)
+entity.remove_component(Health)
 ```
 
 ### SpriteGroup — Grupos de Entidades
@@ -257,7 +258,7 @@ inimigos.add(Goblin(), Goblin(), Troll())
 inimigos.update(dt)
 
 # No draw do jogo:
-inimigos.draw(screen, Camera.offset)
+inimigos.draw(Camera.offset)
 
 # Busca por tag
 boss = inimigos.find_first_by_tag("boss")
@@ -273,7 +274,7 @@ inimigos.purge_destroyed()
 
 ## 5. Transform — Posição, Rotação e Escala
 
-**Módulo:** `nestifypy.pyunix.transform`
+**Módulo:** `arkhe.pyunix.transform`
 
 Cada entidade tem um `transform` que gerencia seu estado espacial. Suporta hierarquia pai-filho, onde filhos herdam a transformação dos pais.
 
@@ -305,14 +306,14 @@ ponto_mundo = entity.transform.to_world(ponto_local)
 
 ## 6. Input — Teclado, Mouse e Gamepad
 
-**Módulo:** `nestifypy.pyunix.input`
+**Módulo:** `arkhe.pyunix.input`
 
 O sistema de input desacopla as intenções do jogo das teclas físicas através do sistema de **actions** e **axes**.
 
 ### Configuração (no `@Game.start`)
 
 ```python
-from nestifypy.pyunix.input import Input
+from arkhe.pyunix.input import Input
 
 # Actions: mapeia uma intenção para uma ou mais teclas
 Input.bind_action("pular",   "SPACE", "W", "UP")
@@ -380,7 +381,7 @@ class Jogador(Entity):
 
 ## 7. Physics — Física 2D
 
-**Módulo:** `nestifypy.pyunix.physics`
+**Módulo:** `arkhe.pyunix.physics`
 
 Sistema de física com corpos DYNAMIC, KINEMATIC e STATIC, colisores AABB e circulares, fricção, restituição, raycasting e queries de sobreposição.
 
@@ -395,7 +396,7 @@ Sistema de física com corpos DYNAMIC, KINEMATIC e STATIC, colisores AABB e circ
 ### Criando Entidades com Física
 
 ```python
-from nestifypy.pyunix.physics import (
+from arkhe.pyunix.physics import (
     Rigidbody, BoxCollider, CircleCollider,
     PhysicsMaterial, BodyType, PhysicsWorld
 )
@@ -515,7 +516,7 @@ if resultado:
 
 ```python
 # No seu método de draw:
-PhysicsWorld.draw_debug(screen, Camera.offset)
+PhysicsWorld.draw_debug(Camera.offset)
 # Desenha wireframes coloridos: verde = DYNAMIC, azul = STATIC, amarelo = trigger
 ```
 
@@ -523,14 +524,14 @@ PhysicsWorld.draw_debug(screen, Camera.offset)
 
 ## 8. Camera — Câmera 2D
 
-**Módulo:** `nestifypy.pyunix.camera`
+**Módulo:** `arkhe.pyunix.camera`
 
 Câmera com follow suave, dead zone, limites de mundo, zoom, screen shake e camadas parallax.
 
 ### Seguindo uma Entidade
 
 ```python
-from nestifypy.pyunix.camera import Camera
+from arkhe.pyunix.camera import Camera
 
 # Suave (0.0 = sem movimento, 1.0 = snap instantâneo)
 Camera.follow(jogador, smooth=0.08)
@@ -572,14 +573,14 @@ Camera.add_parallax_layer("nuvens", surface_nuvens, factor=0.3)
 Camera.add_parallax_layer("arvores",surface_arvores,factor=0.6)
 
 # No draw, antes de renderizar as entidades:
-Camera.draw_parallax(screen)
+Camera.draw_parallax()
 ```
 
 ### Usando o Offset para Renderização
 
 ```python
 # Ao desenhar sprites no mundo:
-entity.draw_self(screen, Camera.offset)
+entity.draw_self(Camera.offset)
 
 # Converter coordenadas
 pos_tela = Camera.world_to_screen(mundo_x, mundo_y)
@@ -590,14 +591,14 @@ pos_mundo = Camera.screen_to_world(tela_x, tela_y)
 
 ## 9. Assets — Carregamento de Recursos
 
-**Módulo:** `nestifypy.pyunix.assets`
+**Módulo:** `arkhe.pyunix.assets`
 
 Cache centralizado para imagens, spritesheets, sons e fontes. Cada asset é carregado apenas uma vez — chamadas subsequentes retornam o objeto em cache.
 
 ### Configuração
 
 ```python
-from nestifypy.pyunix.assets import Assets
+from arkhe.pyunix.assets import Assets
 
 Assets.set_base_path("assets/")     # diretório base para todos os assets
 Assets.alias("heroi", "personagens/heroi_spritesheet.png")
@@ -671,14 +672,14 @@ contornada = Assets.outline_surface(sprite.image, color=(255, 255, 0), thickness
 
 ## 10. Animation — Animação por Spritesheet
 
-**Módulo:** `nestifypy.pyunix.animation`
+**Módulo:** `arkhe.pyunix.animation`
 
 Sistema de animação por estados com state machine automática, eventos por frame, ping-pong e callbacks de loop/conclusão.
 
 ### Configurando Clips
 
 ```python
-from nestifypy.pyunix.animation import AnimationClip
+from arkhe.pyunix.animation import AnimationClip
 
 class Heroi(Entity):
 
@@ -746,10 +747,10 @@ anim.normalized_time        # 0.0–1.0 (progresso no clip)
 
 ## 11. Audio — Música e Efeitos Sonoros
 
-**Módulo:** `nestifypy.pyunix.audio`
+**Módulo:** `arkhe.pyunix.audio`
 
 ```python
-from nestifypy.pyunix.audio import Audio
+from arkhe.pyunix.audio import Audio
 ```
 
 ### Música (streaming)
@@ -800,11 +801,11 @@ Audio.is_paused      # True/False
 
 ## 12. Particles — Sistema de Partículas
 
-**Módulo:** `nestifypy.pyunix.particles`
+**Módulo:** `arkhe.pyunix.particles`
 
 ```python
-from nestifypy.pyunix.particles import ParticleSystem
-from nestifypy.pyunix.math import Color, Vector2
+from arkhe.pyunix.particles import ParticleSystem
+from arkhe.pyunix.math import Color, Vector2
 ```
 
 > **Performance:** o `ParticleSystem` usa um **object pool de tamanho fixo**. Os objetos de partícula são alocados uma única vez ao chamar `configure()` ou `start()` e depois apenas *reativados* — sem alocações por frame, sem pressão no garbage collector. Emissores de alta frequência (fogo, faíscas, rain) se beneficiam diretamente disso.
@@ -856,20 +857,20 @@ def atualizar(self, dt):
     self.fogo.update(dt)
 
 @Sprite.draw
-def renderizar(self, surface):
-    self.fogo.draw(surface, Camera.offset)
+def renderizar(self):
+    self.fogo.draw(Camera.offset)
 ```
 
 ---
 
 ## 13. Tween — Animações de Propriedades
 
-**Módulo:** `nestifypy.pyunix.tween`
+**Módulo:** `arkhe.pyunix.tween`
 
 Anima qualquer atributo numérico de qualquer objeto ao longo do tempo, com curvas de easing.
 
 ```python
-from nestifypy.pyunix.tween import Tween, Ease
+from arkhe.pyunix.tween import Tween, Ease
 ```
 
 ### Exemplos Básicos
@@ -934,14 +935,14 @@ Tween.kill_all()      # cancela todos os tweens ativos
 
 ## 14. Scene — Gerenciador de Cenas
 
-**Módulo:** `nestifypy.pyunix.scene`
+**Módulo:** `arkhe.pyunix.scene`
 
 Gerenciamento de estados do jogo (menu, gameplay, gameover) via uma pilha de cenas.
 
 ### Criando e Registrando Cenas
 
 ```python
-from nestifypy.pyunix.scene import Scene
+from arkhe.pyunix.scene import Scene
 
 @Scene("menu")
 class MenuCena:
@@ -960,9 +961,9 @@ class MenuCena:
             Scene.switch("jogo", data={"dificuldade": "normal"})
 
     @Scene.draw
-    def renderizar(self, surface):
-        surface.fill((20, 20, 30))
-        self.titulo.draw(surface)
+    def renderizar(self):
+        Canvas.clear((20, 20, 30))
+        self.titulo.draw()
 
 @Scene("jogo")
 class JogoCena:
@@ -978,9 +979,9 @@ class JogoCena:
         self.jogador._dispatch("update", dt)
 
     @Scene.draw
-    def renderizar(self, surface):
-        surface.fill((0, 0, 0))
-        self.jogador._dispatch("draw", surface)
+    def renderizar(self):
+        Canvas.clear((0, 0, 0))
+        self.jogador._dispatch("draw")
 ```
 
 ### Operações de Pilha
@@ -1011,18 +1012,18 @@ def atualizar(self, dt):
     Scene.update(dt)
 
 @Game.draw
-def renderizar(self, screen):
-    Scene.draw(screen)
+def renderizar(self):
+    Scene.draw()
 ```
 
 ---
 
 ## 15. Timer — Timers e Callbacks
 
-**Módulo:** `nestifypy.pyunix.timer`
+**Módulo:** `arkhe.pyunix.timer`
 
 ```python
-from nestifypy.pyunix.timer import Timer
+from arkhe.pyunix.timer import Timer
 ```
 
 ```python
@@ -1057,12 +1058,12 @@ print(Timer.count)
 
 ## 16. Events — Sistema de Eventos Pub/Sub
 
-**Módulo:** `nestifypy.pyunix.events`
+**Módulo:** `arkhe.pyunix.events`
 
 Comunicação desacoplada entre sistemas do jogo sem referências diretas.
 
 ```python
-from nestifypy.pyunix.events import Event
+from arkhe.pyunix.events import Event
 ```
 
 ### Emitindo e Ouvindo
@@ -1104,10 +1105,10 @@ Event.has_listeners("jogador_morreu")     # True/False
 
 ## 17. TileMap — Mapas em Tiles
 
-**Módulo:** `nestifypy.pyunix.tilemap`
+**Módulo:** `arkhe.pyunix.tilemap`
 
 ```python
-from nestifypy.pyunix.tilemap import TileSet, TileMap
+from arkhe.pyunix.tilemap import TileSet, TileMap
 ```
 
 ### Criando um Mapa
@@ -1153,10 +1154,10 @@ mapa.build_colliders(layer_name="fundo")
 
 ```python
 @Game.draw
-def renderizar(self, screen):
-    screen.fill((0, 0, 0))
+def renderizar(self):
+    Canvas.clear((0, 0, 0))
     # A câmera culling é automática — só renderiza tiles visíveis
-    mapa.draw(screen, Camera.offset, Camera.zoom_level)
+    mapa.draw(Camera.offset, Camera.zoom_level)
 ```
 
 ### Acessando Tiles
@@ -1185,12 +1186,12 @@ tipo = tileset.get_property(7, "tipo")  # "agua"
 
 ## 18. Text — Renderização de Texto
 
-**Módulo:** `nestifypy.pyunix.text`
+**Módulo:** `arkhe.pyunix.text`
 
 `Text` é uma `Entity` especializada em renderizar texto com sombra, contorno, quebra de linha e alinhamento.
 
 ```python
-from nestifypy.pyunix.text import Text
+from arkhe.pyunix.text import Text
 
 # Texto básico
 titulo = Text("Olá, Mundo!", x=400, y=200, size=48, anchor="center")
@@ -1222,13 +1223,13 @@ label.set_color("yellow")
 label.set_size(32)
 
 # Renderizando
-titulo.draw(screen)
+titulo.draw()
 ```
 
 ### Registrando Fontes Customizadas
 
 ```python
-from nestifypy.pyunix.fonts import Fonts
+from arkhe.pyunix.fonts import Fonts
 
 Fonts.load("pixel", "assets/fontes/pixel.ttf")
 label = Text("Score", font_name="pixel", size=24)
@@ -1238,12 +1239,12 @@ label = Text("Score", font_name="pixel", size=24)
 
 ## 19. Math — Vetores e Cores
 
-**Módulo:** `nestifypy.pyunix.math`
+**Módulo:** `arkhe.pyunix.math`
 
 ### Vector2
 
 ```python
-from nestifypy.pyunix.math import Vector2
+from arkhe.pyunix.math import Vector2
 
 v = Vector2(3, 4)
 
@@ -1288,7 +1289,7 @@ v.to_int_tuple()     # (int(x), int(y))
 ### Color
 
 ```python
-from nestifypy.pyunix.math import Color
+from arkhe.pyunix.math import Color
 
 vermelho = Color(255, 0, 0)
 verde = Color.from_hex("#00FF00")
@@ -1318,12 +1319,12 @@ cor.to_normalized()  # (1.0, 0.0, 0.0, 1.0)
 
 ## 20. Window — Gerenciamento da Janela
 
-**Módulo:** `nestifypy.pyunix.window`
+**Módulo:** `arkhe.pyunix.window`
 
 Normalmente a janela é gerenciada automaticamente pelo `@Game(...)`. Use `Window` diretamente para customizações.
 
 ```python
-from nestifypy.pyunix.window import Window
+from arkhe.pyunix.window import Window
 
 Window.set_title("Meu Jogo v1.0")
 Window.set_icon("icone.png")
@@ -1339,12 +1340,12 @@ print(Window.center_pos)  # (400, 300)
 
 ## 21. Save — Sistema de Salvamento
 
-**Módulo:** `nestifypy.pyunix.save`
+**Módulo:** `arkhe.pyunix.save`
 
 Sistema de save/load baseado em JSON com suporte a múltiplos slots, valores default, auto-save por timer e uma API simples de get/set. Tudo é lazy — nada é lido do disco até o primeiro acesso.
 
 ```python
-from nestifypy.pyunix.save import Save
+from arkhe.pyunix.save import Save
 ```
 
 ### Configuração Inicial
@@ -1474,16 +1475,17 @@ def ao_fechar(self):
 Um platformer minimalista com física, câmera suave e HUD de pontos.
 
 ```python
-from nestifypy.pyunix.app import Game
-from nestifypy.pyunix.sprite import Entity, Sprite, SpriteGroup
-from nestifypy.pyunix.physics import Rigidbody, BoxCollider, BodyType, PhysicsWorld
-from nestifypy.pyunix.input import Input
-from nestifypy.pyunix.camera import Camera
-from nestifypy.pyunix.assets import Assets
-from nestifypy.pyunix.math import Vector2, Color
-from nestifypy.pyunix.timer import Timer
-from nestifypy.pyunix.audio import Audio
-from nestifypy.pyunix.save import Save
+from arkhe.pyunix.app import Game
+from arkhe.pyunix.render.canvas import Canvas
+from arkhe.pyunix.sprite import Entity, Sprite, SpriteGroup
+from arkhe.pyunix.physics import Rigidbody, BoxCollider, BodyType, PhysicsWorld
+from arkhe.pyunix.input import Input
+from arkhe.pyunix.camera import Camera
+from arkhe.pyunix.assets import Assets
+from arkhe.pyunix.math import Vector2, Color
+from arkhe.pyunix.timer import Timer
+from arkhe.pyunix.audio import Audio
+from arkhe.pyunix.save import Save
 
 
 class Jogador(Entity):
@@ -1516,10 +1518,9 @@ class Jogador(Entity):
 
     # @Sprite.draw definido: SpriteGroup não chamará draw_self automaticamente
     @Sprite.draw
-    def renderizar(self, surface):
-        import pygame
-        rect = pygame.Rect(self.x - 14, self.y - 24, 28, 48)
-        pygame.draw.rect(surface, (100, 180, 255), rect)
+    def renderizar(self):
+        from arkhe.pyunix.render.draw import Draw
+        Draw.rect(self.x - 14, self.y - 24, 28, 48, (100, 180, 255)), rect)
 
 
 class Plataforma(Entity):
@@ -1534,14 +1535,9 @@ class Plataforma(Entity):
         self._altura  = altura
 
     @Sprite.draw
-    def renderizar(self, surface):
-        import pygame
-        rect = pygame.Rect(
-            self.x - self._largura // 2,
-            self.y - self._altura  // 2,
-            self._largura, self._altura,
-        )
-        pygame.draw.rect(surface, (80, 160, 80), rect)
+    def renderizar(self):
+        from arkhe.pyunix.render.draw import Draw
+        Draw.rect(self.x - self._largura // 2, self.y - self._altura // 2, self._largura, self._altura, (80, 160, 80)), rect)
 
 
 @Game(title="Platformer Simples", size=(800, 450), fps=60)
@@ -1592,17 +1588,15 @@ class MeuJogo:
         self.plataformas.update(dt)
 
     @Game.layer("mundo", order=0)
-    def desenhar_mundo(self, screen):
-        screen.fill((30, 30, 50))
-        self.plataformas.draw(screen, Camera.offset)
-        self.jogador._dispatch("draw", screen)
+    def desenhar_mundo(self):
+        Canvas.clear((30, 30, 50))
+        self.plataformas.draw(Camera.offset)
+        self.jogador._dispatch("draw")
 
     @Game.layer("ui", order=1)
-    def desenhar_ui(self, screen):
-        import pygame
-        font = pygame.font.SysFont(None, 32)
-        texto = font.render(f"Pontos: {self.pontos}", True, (255, 255, 100))
-        screen.blit(texto, (10, 10))
+    def desenhar_ui(self):
+        from arkhe.pyunix.render.draw import Draw
+        Draw.text(f"Pontos: {self.pontos}", 10, 10, size=32, color=(255, 255, 100))
 
     @Game.on_pause
     def pausado(self):
@@ -1642,7 +1636,7 @@ if __name__ == "__main__":
 - Prefira `magnitude_squared` em vez de `magnitude` para comparações de distância (evita a raiz quadrada).
 - Tiles fora da tela são culled automaticamente pelo `TileMap.draw()` — não é necessário filtrar manualmente.
 - Corpos com velocidade próxima de zero entram em "sleep" automaticamente, economizando CPU.
-- Para debug de física, use `PhysicsWorld.draw_debug(screen, Camera.offset)` temporariamente.
+- Para debug de física, use `PhysicsWorld.draw_debug(Camera.offset)` temporariamente.
 - Ajuste `PhysicsWorld.set_cell_size()` para o tamanho médio dos seus colisores — célula ≈ 2× a dimensão do maior colisador para menor número de testes desnecessários.
 - `ParticleSystem` usa pool fixo: a alocação acontece apenas uma vez em `configure()`. Para emissores que mudam de `count` frequentemente, prefira um pool grande e ajuste `emit_rate` em vez de reconfigurar `count`.
 - `Save.commit()` faz I/O de disco — não chame a cada frame. Use `auto_save(interval=N)` + `Save.tick(dt)` para persistência periódica sem impacto no FPS.
@@ -1650,4 +1644,4 @@ if __name__ == "__main__":
 
 ---
 
-*Documentação gerada para nestifypy.pyunix — baseada no código-fonte dos módulos `app`, `sprite`, `physics`, `camera`, `assets`, `animation`, `audio`, `particles`, `tween`, `scene`, `timer`, `events`, `tilemap`, `text`, `math`, `window`, `transform`, `input`, `fonts` e `save`.*
+*Documentação gerada para arkhe.pyunix — baseada no código-fonte dos módulos `app`, `sprite`, `physics`, `camera`, `assets`, `animation`, `audio`, `particles`, `tween`, `scene`, `timer`, `events`, `tilemap`, `text`, `math`, `window`, `transform`, `input`, `fonts` e `save`.*

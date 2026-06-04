@@ -1,4 +1,4 @@
-# SLogger – System Logger (`nestifypy.slogger`)
+# SLogger – System Logger (`arkhe.slogger`)
 
 > Um logger profissional, colorido e extensível para qualquer projeto Python —  
 > do primeiro `"Hello, World!"` até aplicações em produção.
@@ -8,8 +8,8 @@
 ## Instalação / Importação
 
 ```python
-from nestifypy.slogger import SLogger, LogLevel, get_logger
-from nestifypy.slogger import Formatter, SimpleFormatter, JSONFormatter
+from arkhe.slogger import SLogger, LogLevel, get_logger
+from arkhe.slogger import Formatter, SimpleFormatter, JSONFormatter
 ```
 
 ---
@@ -34,7 +34,7 @@ from nestifypy.slogger import Formatter, SimpleFormatter, JSONFormatter
 ### 1. Logger por instância (recomendado para módulos)
 
 ```python
-from nestifypy.slogger import get_logger, LogLevel
+from arkhe.slogger import get_logger, LogLevel
 
 log = get_logger("my_app", level=LogLevel.DEBUG, file="app.log")
 
@@ -50,7 +50,7 @@ log.fatal("Sistema irrecuperável")
 ### 2. Logger global (estilo singleton, como no `core` original)
 
 ```python
-from nestifypy.slogger import SLogger, LogLevel
+from arkhe.slogger import SLogger, LogLevel
 
 SLogger.set_prefix("APP")
 SLogger.set_level(LogLevel.INFO)
@@ -104,7 +104,7 @@ Saída do banner completo:
 ```
 
 ```python
-from nestifypy.slogger import get_logger, JSONFormatter, LogLevel
+from arkhe.slogger import get_logger, JSONFormatter, LogLevel
 
 log = get_logger("api", formatter=JSONFormatter())
 log.info("Request recebido")
@@ -114,7 +114,7 @@ log.info("Request recebido")
 ### Formatador personalizado
 
 ```python
-from nestifypy.slogger import Formatter, LogLevel
+from arkhe.slogger import Formatter, LogLevel
 
 class MyFormatter(Formatter):
     def format(self, level, prefix, message, timestamp):
@@ -282,7 +282,7 @@ SLogger.ginfo("de volta!")
 ## Exemplo completo — projeto real
 
 ```python
-from nestifypy.slogger import get_logger, SLogger, LogLevel
+from arkhe.slogger import get_logger, SLogger, LogLevel
 
 # Banner de boas-vindas
 SLogger.show_banner(compact=True)

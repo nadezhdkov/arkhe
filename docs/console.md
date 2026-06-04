@@ -1,10 +1,10 @@
-# Console Tools (`nestifypy.console`)
+# Console Tools (`arkhe.console`)
 
 The `Console` module provides modern, rich terminal output utilities including colored printing, structured tables, progress bars, interactive input helpers, and animated spinners.
 
 ## Import
 ```python
-from nestifypy.console import Console
+from arkhe.console import Console
 ```
 
 ## 1. Colored Printing

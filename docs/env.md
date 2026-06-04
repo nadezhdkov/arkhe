@@ -1,8 +1,8 @@
-# nestifypy.env
+# arkhe.env
 
 Modern, typed and chainable environment variable management for Python.
 
-`nestifypy.env` is a powerful wrapper around `python-dotenv` that combines:
+`arkhe.env` is a powerful wrapper around `python-dotenv` that combines:
 
 * Lazy environment resolution
 * YAML-style attribute chaining
@@ -19,7 +19,7 @@ Inspired by the ergonomics of modern frameworks like Spring Boot, NestJS and dyn
 # Installation
 
 ```bash
-pip install nestifypy python-dotenv
+pip install arkhe python-dotenv
 ```
 
 ---
@@ -29,7 +29,7 @@ pip install nestifypy python-dotenv
 Before accessing variables, load your environment file:
 
 ```python
-from nestifypy.env import Env
+from arkhe.env import Env
 
 Env.load()
 ```
@@ -57,7 +57,7 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 Python:
 
 ```python
-from nestifypy import env
+from arkhe import env
 
 host = env.db.host
 port = env.db.port.int
@@ -101,7 +101,7 @@ Every attribute access appends a namespace segment until the value is materializ
 ## How It Works
 
 ```python
-from nestifypy import env
+from arkhe import env
 
 env.db.host
 ```
@@ -293,7 +293,7 @@ env.db.host("localhost")
 Useful when you want a fixed namespace root.
 
 ```python
-from nestifypy.env import Env
+from arkhe.env import Env
 
 db = Env.ns("DB")
 
@@ -325,7 +325,7 @@ with a custom `_EnvModule`.
 This allows:
 
 ```python
-from nestifypy import env
+from arkhe import env
 
 env.db.host
 ```
@@ -447,7 +447,7 @@ Map environment variables directly into class attributes.
 ## Example
 
 ```python
-from nestifypy.env import Env
+from arkhe.env import Env
 
 class Config:
     host = Env.property(
@@ -482,7 +482,7 @@ Automatically inject environment variables into function parameters.
 ## Example
 
 ```python
-from nestifypy.env import Env
+from arkhe.env import Env
 
 @Env.inject(
     api_key="API_KEY",
@@ -616,8 +616,8 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 Python:
 
 ```python
-from nestifypy import env
-from nestifypy.env import Env
+from arkhe import env
+from arkhe.env import Env
 
 Env.load()
 
@@ -652,7 +652,7 @@ __all__ = [
 
 # Summary
 
-`nestifypy.env` provides:
+`arkhe.env` provides:
 
 * Elegant attribute-based access
 * Lazy environment resolution

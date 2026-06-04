@@ -1,6 +1,6 @@
-# nestifypy · scheduler
+# arkhe · scheduler
 
-> Sistema de agendamento de tarefas para o Nestifypy — API fluente, thread-safe, sem dependências externas.
+> Sistema de agendamento de tarefas para o Arkhe — API fluente, thread-safe, sem dependências externas.
 
 **v0.1 · Python 3.11+ · Sem asyncio · Sem dependências externas**
 
@@ -27,7 +27,7 @@
 
 ## 1  Visão Geral
 
-O módulo `nestifypy.scheduler` fornece um sistema de agendamento de tarefas completo, com API fluente inspirada nos melhores schedulers do ecossistema Python e Java — sem asyncio, sem dependências externas, 100% thread-safe.
+O módulo `arkhe.scheduler` fornece um sistema de agendamento de tarefas completo, com API fluente inspirada nos melhores schedulers do ecossistema Python e Java — sem asyncio, sem dependências externas, 100% thread-safe.
 
 **Principais características:**
 
@@ -45,15 +45,15 @@ O módulo `nestifypy.scheduler` fornece um sistema de agendamento de tarefas com
 
 ```bash
 # Instalação
-pip install nestifypy-boot
+pip install arkhe-boot
 ```
 
 ```python
 # Importação recomendada
-from nestifypy.scheduler import Scheduler
+from arkhe.scheduler import Scheduler
 
 # Importação completa (para tipagem e eventos)
-from nestifypy.scheduler import (
+from arkhe.scheduler import (
     Scheduler, Job, JobState, JobEvent,
     Group, CronExpression, MissedStrategy,
     SchedulerError, JobNotFoundError, CronParseError, JobTimeoutError,
@@ -68,7 +68,7 @@ from nestifypy.scheduler import (
 
 ```python
 import time
-from nestifypy.scheduler import Scheduler
+from arkhe.scheduler import Scheduler
 
 def hello():
     print("Olá!")
@@ -343,7 +343,7 @@ O método `.persistent()` salva o estado do job em disco (JSON). Ao reiniciar a 
 ```python
 job.persistent(
     strategy = "skip",               # "catchup" | "skip" | "latest"
-    path = ".nestifypy/scheduler",   # pasta de persistência
+    path = ".arkhe/scheduler",   # pasta de persistência
 )
 ```
 
@@ -444,7 +444,7 @@ Parser e avaliador de expressões cron de 5 campos. Disponível de forma indepen
 ```
 
 ```python
-from nestifypy.scheduler import CronExpression
+from arkhe.scheduler import CronExpression
 
 cron = CronExpression("0 8 * * mon-fri")
 print(cron.matches())       # True se agora é 08:xx num dia útil
@@ -469,7 +469,7 @@ print(cron.next_after())    # próxima segunda-feira às 08:00
 ### 5.1  Pipeline de notificações
 
 ```python
-from nestifypy.scheduler import Scheduler, JobEvent
+from arkhe.scheduler import Scheduler, JobEvent
 
 def send_newsletter(): ...
 
@@ -515,7 +515,7 @@ Scheduler.every(15).minutes(with_retry(flaky_api_call))
 
 ```python
 import signal, time
-from nestifypy.scheduler import Scheduler
+from arkhe.scheduler import Scheduler
 
 Scheduler.every(5).seconds(heartbeat).named("hb")
 Scheduler.every(1).minute(sync_db).named("sync")
@@ -535,7 +535,7 @@ while Scheduler.count() > 0:
 
 ```python
 import unittest
-from nestifypy.scheduler import Scheduler
+from arkhe.scheduler import Scheduler
 
 class TestScheduler(unittest.TestCase):
 

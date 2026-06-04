@@ -1,7 +1,7 @@
 # Pyunix 2.0 — Proposta de Arquitetura da Engine
 
 > **Documento de Arquitetura Técnica**
-> Nestifypy · Pyunix Game Engine · Versão de referência
+> Arkhe · Pyunix Game Engine · Versão de referência
 
 ---
 
@@ -130,7 +130,7 @@ A solução não é apenas renomear — é **reconstruir a camada de saída** co
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    DESENVOLVEDOR DO JOGO                     │
-│          from nestifypy.pyunix import *                      │
+│          from arkhe.pyunix import *                      │
 │                                                              │
 │  Game · Entity · Sprite · Scene · Input · Camera · Audio    │
 │  Draw · Canvas · UI · Assets · Physics · Tween · Timer      │
@@ -175,7 +175,7 @@ A solução não é apenas renomear — é **reconstruir a camada de saída** co
 Substitui todas as chamadas `pygame.draw.*`:
 
 ```python
-# nestifypy/pyunix/draw.py
+# arkhe/pyunix/draw.py
 
 class DrawAPI:
     """
@@ -297,7 +297,7 @@ Draw = DrawAPI()
 Substitui a `pygame.Surface` exposta via `screen`:
 
 ```python
-# nestifypy/pyunix/canvas.py
+# arkhe/pyunix/canvas.py
 
 class Canvas:
     """
@@ -378,7 +378,7 @@ def desenhar_ui(self):
 Além da API `Draw.*` (imperativa), Shapes podem ser instâncias com ciclo de vida:
 
 ```python
-# nestifypy/pyunix/shapes.py
+# arkhe/pyunix/shapes.py
 
 class Rectangle(Entity):
     def __init__(
@@ -427,7 +427,7 @@ plataforma.collider = BoxCollider(800, 40)
 O maior gap atual. A UI deve ser completamente declarativa e independente do Pygame.
 
 ```python
-# nestifypy/pyunix/ui/__init__.py
+# arkhe/pyunix/ui/__init__.py
 
 # Componentes de layout
 from .layout import Column, Row, Stack, Grid, Spacer, Padding
@@ -688,7 +688,7 @@ class AnchoredPanel:
 ### 6.1 `FontSystem` Melhorado
 
 ```python
-# nestifypy/pyunix/fonts.py
+# arkhe/pyunix/fonts.py
 
 class FontSystem:
     
@@ -715,7 +715,7 @@ Fonts = FontSystem()
 ### 6.2 `Text` Entity Melhorada
 
 ```python
-# nestifypy/pyunix/text.py
+# arkhe/pyunix/text.py
 
 class Text(Entity):
     """
@@ -788,7 +788,7 @@ hp_text = Text.rich("[color=#FF5050][b]HP:[/b][/color] 80/100", 10, 40, size=20)
 ### 7.1 API Expandida
 
 ```python
-# nestifypy/pyunix/assets.py
+# arkhe/pyunix/assets.py
 
 class AssetManager:
 
@@ -871,7 +871,7 @@ Assets = AssetManager()
 ### 7.2 `Surface` — Tipo Próprio
 
 ```python
-# nestifypy/pyunix/_surface.py
+# arkhe/pyunix/_surface.py
 # NUNCA exportado diretamente ao dev, apenas internamente
 
 class Surface:
@@ -910,7 +910,7 @@ class Surface:
 ### 8.1 Sistema de Componentes Estilo Unity
 
 ```python
-# nestifypy/pyunix/component.py
+# arkhe/pyunix/component.py
 
 class Component:
     """
@@ -1072,7 +1072,7 @@ class Spawner(Component):
 Para jogos maiores, com milhares de entidades:
 
 ```python
-# nestifypy/pyunix/ecs/__init__.py
+# arkhe/pyunix/ecs/__init__.py
 
 class World:
     """
@@ -1147,7 +1147,7 @@ class SpriteComponent:
 ### 10.1 API Expandida
 
 ```python
-# nestifypy/pyunix/scene.py
+# arkhe/pyunix/scene.py
 
 class SceneAPI:
 
@@ -1239,7 +1239,7 @@ Scene.switch_with_transition(
 ### 11.1 Sistema com Presets
 
 ```python
-# nestifypy/pyunix/particles.py
+# arkhe/pyunix/particles.py
 
 class ParticleSystem:
     # ... (mantém API atual) ...
@@ -1328,7 +1328,7 @@ rocket.add_component(ParticleEmitter(
 ### 12.1 Blend Trees
 
 ```python
-# nestifypy/pyunix/animation.py
+# arkhe/pyunix/animation.py
 
 class BlendTree:
     """
@@ -1417,7 +1417,7 @@ player.animator = controller
 ### 13.1 Suporte a Tiled (.tmx)
 
 ```python
-# nestifypy/pyunix/tilemap.py
+# arkhe/pyunix/tilemap.py
 
 class TileMap:
     
@@ -1488,7 +1488,7 @@ class TileObject:
 ### 14.1 Pathfinding
 
 ```python
-# nestifypy/pyunix/nav.py
+# arkhe/pyunix/nav.py
 
 class NavGrid:
     """
@@ -1559,7 +1559,7 @@ class Guarda(Entity):
 ### 14.2 Behavior Trees
 
 ```python
-# nestifypy/pyunix/ai.py
+# arkhe/pyunix/ai.py
 
 class BehaviorTree:
     """
@@ -1610,7 +1610,7 @@ class Repeater(BTNode):
 
 
 # Uso prático:
-from nestifypy.pyunix.ai import *
+from arkhe.pyunix.ai import *
 
 def bt_inimigo(enemy: "Inimigo") -> BehaviorTree:
     bb = Blackboard()
@@ -1638,7 +1638,7 @@ def bt_inimigo(enemy: "Inimigo") -> BehaviorTree:
 ### 15.1 Inspector e Debug
 
 ```python
-# nestifypy/pyunix/devtools/__init__.py
+# arkhe/pyunix/devtools/__init__.py
 
 class DevTools:
     """
@@ -1718,7 +1718,7 @@ DevTools = DevToolsSystem()
 
 **Estrutura atual:**
 ```
-nestifypy/pyunix/
+arkhe/pyunix/
 ├── animation.py
 ├── app.py
 ├── assets.py
@@ -1742,9 +1742,9 @@ nestifypy/pyunix/
 
 **Estrutura proposta v2.0:**
 ```
-nestifypy/pyunix/
+arkhe/pyunix/
 │
-├── __init__.py              ← re-exporta tudo via `from nestifypy.pyunix import *`
+├── __init__.py              ← re-exporta tudo via `from arkhe.pyunix import *`
 │
 ├── core/                    ← Engine runtime (não importado pelo dev)
 │   ├── _backend.py          ← Pygame wrapper completo (privado)
@@ -1847,8 +1847,8 @@ nestifypy/pyunix/
 ### 16.2 `__init__.py` Unificado
 
 ```python
-# nestifypy/pyunix/__init__.py
-# from nestifypy.pyunix import *  ← tudo disponível
+# arkhe/pyunix/__init__.py
+# from arkhe.pyunix import *  ← tudo disponível
 
 # Core
 from .game.app import Game
@@ -2021,7 +2021,7 @@ from .devtools import DevTools
 
 ```python
 # main.py — Platformer com a nova API
-from nestifypy.pyunix import *
+from arkhe.pyunix import *
 
 # ─── Configuração Global ───────────────────────────────────
 
@@ -2182,7 +2182,7 @@ if __name__ == "__main__":
 ### 18.2 Menu Declarativo
 
 ```python
-from nestifypy.pyunix import *
+from arkhe.pyunix import *
 
 @Scene("menu")
 class MenuScene(UIView):
@@ -2262,8 +2262,8 @@ App().run()
 ### 18.3 Inimigo com IA Completa
 
 ```python
-from nestifypy.pyunix import *
-from nestifypy.pyunix.ai import BehaviorTree, Selector, Sequence, Condition, Action, Blackboard
+from arkhe.pyunix import *
+from arkhe.pyunix.ai import BehaviorTree, Selector, Sequence, Condition, Action, Blackboard
 
 class Inimigo(Entity):
 

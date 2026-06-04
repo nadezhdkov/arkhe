@@ -1,6 +1,6 @@
 import pytest
 import time
-from nestifypy.scheduler import Scheduler, JobState
+from arkhe.scheduler import Scheduler, JobState
 
 def test_scheduler_after():
     results = []

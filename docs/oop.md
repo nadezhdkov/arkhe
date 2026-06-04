@@ -1,17 +1,17 @@
-# nestifypy.oop
+# arkhe.oop
 
 Java-inspired Object-Oriented Programming utilities for Python.
 
-`nestifypy.oop` fornece interfaces explícitas, classes abstratas, validação fail-fast de contratos e utilitários de herança que não existem nativamente no Python.
+`arkhe.oop` fornece interfaces explícitas, classes abstratas, validação fail-fast de contratos e utilitários de herança que não existem nativamente no Python.
 
-Ao contrário do módulo `abc` nativo, o nestifypy valida os contratos durante o **carregamento do módulo**, e não na instanciação — permitindo que erros de implementação sejam detectados na inicialização da aplicação.
+Ao contrário do módulo `abc` nativo, o arkhe valida os contratos durante o **carregamento do módulo**, e não na instanciação — permitindo que erros de implementação sejam detectados na inicialização da aplicação.
 
 ---
 
 ## Instalação
 
 ```python
-from nestifypy.oop import (
+from arkhe.oop import (
     interface,
     implements,
     abstract_class,
@@ -295,7 +295,7 @@ Todas as exceções são levantadas em tempo de definição de classe (fail-fast
 
 ## Comparação com Python nativo
 
-| Recurso | nestifypy.oop | Python nativo (`abc`) |
+| Recurso | arkhe.oop | Python nativo (`abc`) |
 |---|---|---|
 | Interfaces explícitas | `@interface` | Não há equivalente |
 | Validação de implementação | `@implements` — automático | Não há equivalente |
@@ -312,7 +312,7 @@ Todas as exceções são levantadas em tempo de definição de classe (fail-fast
 ## Exemplo completo
 
 ```python
-from nestifypy.oop import (
+from arkhe.oop import (
     interface,
     implements,
     abstract_class,
@@ -386,4 +386,4 @@ A validação de `@override` é integrada ao `__init_subclass__` de `@abstract_c
 
 **Compatibilidade**
 
-O módulo é compatível com Python 3.10+ e não depende de frameworks externos. Pode ser usado independentemente ou em conjunto com outros módulos do nestifypy como Collections, Flow, Time, Money ou Ignite.
+O módulo é compatível com Python 3.10+ e não depende de frameworks externos. Pode ser usado independentemente ou em conjunto com outros módulos do arkhe como Collections, Flow, Time, Money ou Ignite.

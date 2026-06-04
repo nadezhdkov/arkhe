@@ -1,8 +1,8 @@
-# nestifypy.ignite
+# arkhe.ignite
 
-> A Spring Boot-inspired application framework for Python — part of the **nestifypy** ecosystem.
+> A Spring Boot-inspired application framework for Python — part of the **arkhe** ecosystem.
 
-`nestifypy.ignite` brings the developer experience of Spring Boot to Python: dependency injection, auto-configuration, lifecycle hooks, event bus, scheduled tasks, and a web layer — all wired together through a single `Application.run()` call.
+`arkhe.ignite` brings the developer experience of Spring Boot to Python: dependency injection, auto-configuration, lifecycle hooks, event bus, scheduled tasks, and a web layer — all wired together through a single `Application.run()` call.
 
 ---
 
@@ -49,19 +49,19 @@
 ## Installation
 
 ```bash
-pip install nestifypy-ignite
+pip install arkhe-ignite
 
 # With web server support (FastAPI + uvicorn)
-pip install nestifypy-ignite[web]
+pip install arkhe-ignite[web]
 
 # With JWT support
-pip install nestifypy-ignite[jwt]
+pip install arkhe-ignite[jwt]
 
 # With scheduled tasks
-pip install nestifypy-ignite[scheduler]
+pip install arkhe-ignite[scheduler]
 
 # Everything
-pip install nestifypy-ignite[all]
+pip install arkhe-ignite[all]
 ```
 
 ---
@@ -69,9 +69,9 @@ pip install nestifypy-ignite[all]
 ## Quick Start
 
 ```python
-from nestifypy.ignite import Application
-from nestifypy.ignite.decorators import Service, Controller, PostConstruct
-from nestifypy.ignite.web.rest import Get, Post
+from arkhe.ignite import Application
+from arkhe.ignite.decorators import Service, Controller, PostConstruct
+from arkhe.ignite.web.rest import Get, Post
 
 @Service
 class UserService:
@@ -127,7 +127,7 @@ myapp/
 `main.py`:
 
 ```python
-from nestifypy.ignite import Application
+from arkhe.ignite import Application
 
 app = Application.run(config_dir=".", web=True, starters=["web"])
 ```
@@ -151,7 +151,7 @@ app = Application.run(config_dir=".", web=True, starters=["web"])
 9. Optionally starts the web server (blocking)
 
 ```python
-from nestifypy.ignite import Application
+from arkhe.ignite import Application
 
 # Minimal
 app = Application.run()
@@ -179,7 +179,7 @@ await app.stop()
 The central hub of the application. Available anywhere via `get_context()` or through constructor injection.
 
 ```python
-from nestifypy.ignite.core.boot import get_context
+from arkhe.ignite.core.boot import get_context
 
 ctx = get_context()
 user_service = ctx.get_bean(UserService)
@@ -230,7 +230,7 @@ The container uses `inspect.signature` and `get_type_hints` to resolve dependenc
 | `PROTOTYPE` | New instance created every time it is requested   | `@Service(scope="prototype")`    |
 
 ```python
-from nestifypy.ignite.decorators import Service
+from arkhe.ignite.decorators import Service
 
 @Service(scope="prototype")
 class RequestContext:
@@ -242,10 +242,10 @@ class RequestContext:
 
 ## Decorators
 
-All decorators are importable from the top-level `nestifypy.ignite.decorators` package:
+All decorators are importable from the top-level `arkhe.ignite.decorators` package:
 
 ```python
-from nestifypy.ignite.decorators import (
+from arkhe.ignite.decorators import (
     Component, Service, Repository, Controller, Configuration,
     Bean, Inject, Value, EventListener, Scheduled, AsyncTask,
     PostConstruct, PreDestroy,
@@ -286,8 +286,8 @@ class ProductController: ...
 Use `@Configuration` to declare a class that provides beans via factory methods, and `@Bean` to mark each factory method.
 
 ```python
-from nestifypy.ignite.decorators import Configuration, Bean
-from nestifypy.ignite.security import JwtService
+from arkhe.ignite.decorators import Configuration, Bean
+from arkhe.ignite.security import JwtService
 
 @Configuration
 class SecurityConfig:
@@ -306,7 +306,7 @@ The return type (or the actual returned instance type) is used as the bean key i
 Injects a configuration value from `application.yml` as a class field descriptor.
 
 ```python
-from nestifypy.ignite.decorators import Service, Value
+from arkhe.ignite.decorators import Service, Value
 
 @Service
 class DatabaseService:
@@ -326,7 +326,7 @@ class DatabaseService:
 Lifecycle hooks called automatically by the framework.
 
 ```python
-from nestifypy.ignite.decorators import Service, PostConstruct, PreDestroy
+from arkhe.ignite.decorators import Service, PostConstruct, PreDestroy
 
 @Service
 class CacheService:
@@ -349,8 +349,8 @@ Both sync and async methods are supported. Multiple methods can be annotated on 
 Subscribe a method to a specific event type published on the `EventBus`.
 
 ```python
-from nestifypy.ignite.decorators import Service, EventListener
-from nestifypy.ignite.events.application_events import ApplicationReadyEvent
+from arkhe.ignite.decorators import Service, EventListener
+from arkhe.ignite.events.application_events import ApplicationReadyEvent
 
 @Service
 class StartupLogger:
@@ -364,10 +364,10 @@ class StartupLogger:
 
 ### @Scheduled
 
-Run a method on a cron schedule. Requires `croniter` (`pip install nestifypy-ignite[scheduler]`).
+Run a method on a cron schedule. Requires `croniter` (`pip install arkhe-ignite[scheduler]`).
 
 ```python
-from nestifypy.ignite.decorators import Service, Scheduled
+from arkhe.ignite.decorators import Service, Scheduled
 
 @Service
 class CleanupJob:
@@ -390,7 +390,7 @@ Standard 5-field cron expressions are supported (`minute hour day month weekday`
 Wraps a method so it runs as a background `asyncio` task (fire-and-forget).
 
 ```python
-from nestifypy.ignite.decorators import Service, AsyncTask
+from arkhe.ignite.decorators import Service, AsyncTask
 
 @Service
 class EmailService:
@@ -407,11 +407,11 @@ class EmailService:
 
 ### @Controller and HTTP Methods
 
-Combine `@Controller` with the HTTP decorators from `nestifypy.ignite.web.rest`:
+Combine `@Controller` with the HTTP decorators from `arkhe.ignite.web.rest`:
 
 ```python
-from nestifypy.ignite.decorators import Controller
-from nestifypy.ignite.web.rest import Get, Post, Put, Patch, Delete
+from arkhe.ignite.decorators import Controller
+from arkhe.ignite.web.rest import Get, Post, Put, Patch, Delete
 
 @Controller("/articles")
 class ArticleController:
@@ -460,7 +460,7 @@ Activate the web layer by passing `starters=["web"]` and `web=True`:
 app = Application.run(web=True, starters=["web"])
 ```
 
-The web starter (`nestifypy.ignite.starter.web_starter`) scans all `@Controller` beans registered at that point and mounts their routes on a FastAPI application using `APIRouter`.
+The web starter (`arkhe.ignite.starter.web_starter`) scans all `@Controller` beans registered at that point and mounts their routes on a FastAPI application using `APIRouter`.
 
 Configure the server in `application.yml`:
 
@@ -478,7 +478,7 @@ server:
 You can access the underlying FastAPI instance for advanced use (custom middleware, testing with `TestClient`, etc.):
 
 ```python
-from nestifypy.ignite.web.server import WebServer
+from arkhe.ignite.web.server import WebServer
 
 app = Application.run(web=False, starters=["web"])
 web_server = app.context.get_bean(WebServer)
@@ -540,7 +540,7 @@ application-prod.yml       # merged on top when profile is "prod"
 Activate a profile via environment variable:
 
 ```bash
-NESTIFYPY_PROFILE=dev python main.py
+ARKHE_PROFILE=dev python main.py
 # or Spring-compatible:
 SPRING_PROFILES_ACTIVE=prod python main.py
 ```
@@ -603,7 +603,7 @@ class UserCreatedEvent:
 Publish from a service:
 
 ```python
-from nestifypy.ignite.core.boot import get_context
+from arkhe.ignite.core.boot import get_context
 
 @Service
 class UserService:
@@ -630,7 +630,7 @@ class WelcomeEmailSender:
 ### EventBus API
 
 ```python
-from nestifypy.ignite.events.event_bus import EventBus
+from arkhe.ignite.events.event_bus import EventBus
 
 bus = app.context.event_bus
 
@@ -679,7 +679,7 @@ Both `@PostConstruct` and `@PreDestroy` support sync and async methods, and mult
 ## Security — JwtService
 
 ```python
-from nestifypy.ignite.security import JwtService
+from arkhe.ignite.security import JwtService
 
 # Typically declared as a @Bean in a @Configuration class
 jwt = JwtService(secret="my-secret", algorithm="HS256", expiry_minutes=60)
@@ -695,7 +695,7 @@ payload = jwt.decode(token)
 is_valid = jwt.is_valid(token)  # True / False
 ```
 
-Requires `PyJWT`: `pip install nestifypy-ignite[jwt]`
+Requires `PyJWT`: `pip install arkhe-ignite[jwt]`
 
 Recommended wiring:
 
@@ -729,7 +729,7 @@ class ReportJob:
         ...
 ```
 
-Requires `croniter`: `pip install nestifypy-ignite[scheduler]`
+Requires `croniter`: `pip install arkhe-ignite[scheduler]`
 
 The scheduler is started automatically as part of `Application.run()` if any `@Scheduled` methods are found. It is cleanly stopped on `app.stop()`.
 
@@ -740,7 +740,7 @@ The scheduler is started automatically as part of `Application.run()` if any `@S
 Use `TestContainer` to isolate beans with mocks or stubs without booting the full application:
 
 ```python
-from nestifypy.ignite.testing import TestContainer
+from arkhe.ignite.testing import TestContainer
 from unittest.mock import MagicMock
 
 def test_user_controller_lists_users():
@@ -787,7 +787,7 @@ def test_list_users_endpoint():
 
 ## Exceptions Reference
 
-All exceptions extend `NestifypyException` (itself extending `Exception`) and are importable from `nestifypy.ignite.core.exceptions`.
+All exceptions extend `ArkheException` (itself extending `Exception`) and are importable from `arkhe.ignite.core.exceptions`.
 
 | Exception                     | Raised when                                                         |
 |------------------------------|---------------------------------------------------------------------|
@@ -799,7 +799,7 @@ All exceptions extend `NestifypyException` (itself extending `Exception`) and ar
 | `ValueInjectionException`     | A required `@Value` key is not set in `application.yml`             |
 
 ```python
-from nestifypy.ignite.core.exceptions import BeanNotFoundException
+from arkhe.ignite.core.exceptions import BeanNotFoundException
 
 try:
     service = ctx.get_bean(UnregisteredService)
@@ -812,7 +812,7 @@ except BeanNotFoundException as e:
 ## Package Map
 
 ```
-nestifypy/ignite/
+arkhe/ignite/
 ├── __init__.py                  Application, ApplicationContext
 │
 ├── core/
@@ -883,5 +883,5 @@ nestifypy/ignite/
 | `[dev]`        | `pytest`, `pytest-asyncio`, `httpx`         | Running tests                  |
 
 ```bash
-pip install nestifypy-ignite[all]
+pip install arkhe-ignite[all]
 ```

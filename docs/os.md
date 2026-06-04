@@ -1,4 +1,4 @@
-# `nestifypy.os` — OS & Filesystem Utilities
+# `arkhe.os` — OS & Filesystem Utilities
 
 A complete, cross-platform abstraction over Python's `pathlib`, `shutil`, `subprocess`, `os`, and `platform` modules. Every operation lives in a focused sub-module; the most common ones are also re-exported at package level for convenience.
 
@@ -64,15 +64,15 @@ A complete, cross-platform abstraction over Python's `pathlib`, `shutil`, `subpr
 
 ```python
 # Full sub-module style
-from nestifypy.os import Files, Dirs, Paths, Process, System
+from arkhe.os import Files, Dirs, Paths, Process, System
 
 # Namespaced (recommended for scripts)
-from nestifypy import os as nos
+from arkhe import os as nos
 nos.files.read("config.json")
 nos.dirs.tree("src/")
 
 # Flat imports for the most common operations
-from nestifypy.os import read, write, run, tree, make_dir
+from arkhe.os import read, write, run, tree, make_dir
 ```
 
 ---
@@ -80,7 +80,7 @@ from nestifypy.os import read, write, run, tree, make_dir
 ## Package Layout
 
 ```
-nestifypy/os/
+arkhe/os/
 ├── __init__.py   ← flat aliases + re-exports
 ├── files.py      ← Files   (36 methods)
 ├── dirs.py       ← Dirs    (22 methods)
@@ -93,7 +93,7 @@ nestifypy/os/
 
 ## Flat API (Quick Access)
 
-The most common operations are available directly from `nestifypy.os` so you can skip the sub-module name:
+The most common operations are available directly from `arkhe.os` so you can skip the sub-module name:
 
 | Flat name | Maps to |
 |---|---|
@@ -129,7 +129,7 @@ The most common operations are available directly from `nestifypy.os` so you can
 ## `Files` — File I/O
 
 ```python
-from nestifypy.os import Files
+from arkhe.os import Files
 ```
 
 All methods are `@staticmethod`. Text encoding defaults to `utf-8` everywhere.
@@ -436,7 +436,7 @@ Files.open_default("report.pdf")
 ## `Dirs` — Directory Operations
 
 ```python
-from nestifypy.os import Dirs
+from arkhe.os import Dirs
 ```
 
 ---
@@ -517,7 +517,7 @@ python_files = Dirs.list_files("src/", pattern="*.py")
 Same as `list()` but returns only sub-directories.
 
 ```python
-modules = Dirs.list_dirs("nestifypy/")
+modules = Dirs.list_dirs("arkhe/")
 ```
 
 ---
@@ -591,11 +591,11 @@ Return the most recently modified timestamp across all files under `path`.
 Return a `tree(1)`-style directory listing as a printable string.
 
 ```python
-print(Dirs.tree("nestifypy/", max_depth=2))
+print(Dirs.tree("arkhe/", max_depth=2))
 ```
 
 ```
-nestifypy/
+arkhe/
 ├── os/
 │   ├── __init__.py
 │   ├── dirs.py
@@ -642,7 +642,7 @@ with Dirs.cd("src/"):
 ## `Paths` — Pure Path Manipulation
 
 ```python
-from nestifypy.os import Paths
+from arkhe.os import Paths
 ```
 
 `Paths` is purely computational — **no filesystem access**. Every method is a transformation on path strings, safe to call without the path actually existing.
@@ -799,7 +799,7 @@ Return a unique temp file path without creating it. The caller is responsible fo
 ## `Process` — Subprocess Utilities
 
 ```python
-from nestifypy.os import Process
+from arkhe.os import Process
 ```
 
 ---
@@ -946,7 +946,7 @@ if not result.ok:
 ## `System` — System Information
 
 ```python
-from nestifypy.os import System
+from arkhe.os import System
 ```
 
 All methods are read-only and have no side-effects. Methods that rely on platform-specific APIs return `None` gracefully when unavailable.

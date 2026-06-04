@@ -1,7 +1,7 @@
 """
 tests/test_yaml.py
 ------------------
-Basic test suite for Nestifypy YAML module.
+Basic test suite for Arkhe YAML module.
 """
 
 import pytest
@@ -11,9 +11,9 @@ import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from nestifypy import yaml
-from nestifypy.yaml import YamlPathError
-from nestifypy.yaml.runtime import YamlRuntime
+from arkhe import yaml
+from arkhe.yaml import YamlPathError
+from arkhe.yaml.runtime import YamlRuntime
 
 @pytest.fixture(autouse=True)
 def reset_yaml_runtime():
@@ -31,7 +31,7 @@ def temp_yaml_files(tmp_path):
     db_file.write_text("database:\n  host: localhost\n  port: 5432")
     
     app_file = tmp_path / "app.yml"
-    app_file.write_text("app:\n  name: nestifypy\n  debug: true")
+    app_file.write_text("app:\n  name: arkhe\n  debug: true")
     
     # We don't manually scan! We let auto-bootstrap do it by setting CWD to tmp_path
     import os
@@ -64,7 +64,7 @@ def test_explicit_api(temp_yaml_files):
 def test_module_getattr(temp_yaml_files):
     # Test yaml.database.host syntax
     assert yaml.database.host == "localhost"
-    assert yaml.app.name == "nestifypy"
+    assert yaml.app.name == "arkhe"
 
 def test_module_getitem(temp_yaml_files):
     # Test yaml["database.host"] syntax
@@ -82,13 +82,13 @@ def test_persistent_metadata(temp_yaml_files):
     # Trigger bootstrap
     assert yaml.get("database.port") == 5432
     
-    nestifypy_dir = temp_yaml_files / ".nestifypy"
-    assert nestifypy_dir.exists()
-    assert (nestifypy_dir / "yaml_index.json").exists()
-    assert (nestifypy_dir / "yaml_metadata.json").exists()
+    arkhe_dir = temp_yaml_files / ".arkhe"
+    assert arkhe_dir.exists()
+    assert (arkhe_dir / "yaml_index.json").exists()
+    assert (arkhe_dir / "yaml_metadata.json").exists()
     
     # Check content of metadata
-    with open(nestifypy_dir / "yaml_metadata.json") as f:
+    with open(arkhe_dir / "yaml_metadata.json") as f:
         meta = json.load(f)
     assert str((temp_yaml_files / "database.yml").resolve()) in meta
 

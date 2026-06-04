@@ -1,12 +1,12 @@
 """
 tests/test_env.py
 -----------------
-Tests for the Nestifypy Env module, including new decorators.
+Tests for the Arkhe Env module, including new decorators.
 """
 
 import os
 import pytest
-from nestifypy.env import Env
+from arkhe.env import Env
 
 @pytest.fixture(autouse=True)
 def clean_env():

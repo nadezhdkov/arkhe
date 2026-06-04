@@ -14,8 +14,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nestifypy.math._types import BigDecimal, FailureResult, DivisionByZeroError
-from nestifypy.math._money import Money, Currency, Portfolio, _FALLBACK_RATES_FROM_USD, _cache
+from arkhe.math._types import BigDecimal, FailureResult, DivisionByZeroError
+from arkhe.math._money import Money, Currency, Portfolio, _FALLBACK_RATES_FROM_USD, _cache
 
 
 # ---------------------------------------------------------------------------

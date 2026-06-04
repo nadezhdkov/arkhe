@@ -3,8 +3,8 @@ from unittest.mock import patch
 
 import pytest
 
-from nestifypy.input import ask
-from nestifypy.input.exceptions import InputConversionError
+from arkhe.input import ask
+from arkhe.input.exceptions import InputConversionError
 
 
 def test_ask_list_default_type():

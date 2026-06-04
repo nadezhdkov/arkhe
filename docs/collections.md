@@ -1,11 +1,11 @@
-# Collections (`nestifypy.collections`)
+# Collections (`arkhe.collections`)
 
 A suite of Java-inspired, strongly-typed (via hints), fluent data structures and functional utilities for Python.
 
 ## Import
 
 ```python
-from nestifypy.collections import (
+from arkhe.collections import (
     ArrayList, LinkedList, Stack, Queue, OrderedSet, HashMap,
     BiMap, MultiMap, PriorityQueue, CircularBuffer,
     Stream, Optional, Result,

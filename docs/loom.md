@@ -1,4 +1,4 @@
-# nestifypy.loom
+# arkhe.loom
 
 > A modern, runtime-oriented configuration system for Python — a structured alternative to `.env` / `python-dotenv`.
 
@@ -51,10 +51,10 @@
 
 ## Instalação
 
-O package `loom` faz parte da biblioteca `nestifypy`. Coloca a pasta `loom/` dentro do teu package:
+O package `loom` faz parte da biblioteca `arkhe`. Coloca a pasta `loom/` dentro do teu package:
 
 ```
-nestifypy/
+arkhe/
 ├── __init__.py
 ├── loom/
 │   ├── __init__.py
@@ -74,7 +74,7 @@ nestifypy/
 Importação principal:
 
 ```python
-from nestifypy.loom import Loom, env
+from arkhe.loom import Loom, env
 ```
 
 ---
@@ -103,7 +103,7 @@ from nestifypy.loom import Loom, env
 **2. Carrega e acede em Python:**
 
 ```python
-from nestifypy.loom import Loom, env
+from arkhe.loom import Loom, env
 
 Loom.load("app.loom")
 
@@ -389,7 +389,7 @@ env.database.db.replica.host  # → "replica.db.example.com"  (path explícito, 
 ### Carregar ficheiros
 
 ```python
-from nestifypy.loom import Loom, env
+from arkhe.loom import Loom, env
 
 # Ficheiro único
 Loom.load("app.loom")
@@ -410,7 +410,7 @@ Loom.load_source('''
 ''')
 
 # Provider customizado
-from nestifypy.loom import SystemEnvProvider
+from arkhe.loom import SystemEnvProvider
 Loom.register_provider(SystemEnvProvider(prefix="APP_"))
 ```
 
@@ -446,7 +446,7 @@ Loom.load("app")
 O objecto `env` é um proxy lazy que constrói o caminho de resolução à medida que os atributos são acedidos:
 
 ```python
-from nestifypy.loom import env
+from arkhe.loom import env
 
 # Cada ponto acrescenta um segmento ao path
 env.database              # → _EnvProxy(parts=["database"])
@@ -458,7 +458,7 @@ env.database.db.main.host # → LoomValue("localhost")
 O `env` global partilha o estado do `Loom` global. Para instâncias isoladas (testes, multi-tenant):
 
 ```python
-from nestifypy.loom import LoomRuntime
+from arkhe.loom import LoomRuntime
 
 rt = LoomRuntime()
 rt.load("app.loom")
@@ -627,7 +627,7 @@ Os providers são a fonte de dados do Loom runtime. Múltiplos providers podem s
 Carrega ficheiros `.loom` do disco. Suporta ficheiro único, glob pattern, ou lista de paths.
 
 ```python
-from nestifypy.loom import FileProvider, LoomRuntime
+from arkhe.loom import FileProvider, LoomRuntime
 
 rt = LoomRuntime()
 
@@ -660,7 +660,7 @@ rt.register_provider(FileProvider("app.loom", profile="prod"))
 Expõe variáveis de ambiente do sistema como um módulo Loom. Útil para injectar segredos em produção sem os escrever em ficheiros.
 
 ```python
-from nestifypy.loom import SystemEnvProvider, LoomRuntime
+from arkhe.loom import SystemEnvProvider, LoomRuntime
 
 rt = LoomRuntime()
 rt.register_provider(SystemEnvProvider(
@@ -692,7 +692,7 @@ rt.env.env.system.debug.bool      # False
 Provider in-memory para overrides em runtime e em testes. Tem a maior prioridade se registado por último.
 
 ```python
-from nestifypy.loom import OverrideProvider, LoomRuntime
+from arkhe.loom import OverrideProvider, LoomRuntime
 
 rt = LoomRuntime()
 rt.load("app.loom")
@@ -715,8 +715,8 @@ Ideal para testes de integração onde se quer substituir valores de ficheiro se
 Implementa a interface `Provider` para criar fontes de dados personalizadas (Vault, Redis, HTTP, etc.):
 
 ```python
-from nestifypy.loom.providers import Provider
-from nestifypy.loom.ast_nodes import ModuleNode, ScopeNode, PropertyNode, LiteralNode
+from arkhe.loom.providers import Provider
+from arkhe.loom.ast_nodes import ModuleNode, ScopeNode, PropertyNode, LiteralNode
 
 class VaultProvider(Provider):
     def __init__(self, vault_url: str, token: str) -> None:
@@ -802,7 +802,7 @@ O `@loom.bind` liga um `dataclass` a um módulo e scope Loom. Os valores são re
 
 ```python
 import dataclasses
-from nestifypy.loom import Loom
+from arkhe.loom import Loom
 
 Loom.load("database.loom")
 
@@ -847,7 +847,7 @@ cfg = StrictConfig()
 **Instâncias isoladas:**
 
 ```python
-from nestifypy.loom import LoomRuntime
+from arkhe.loom import LoomRuntime
 
 rt = LoomRuntime()
 rt.load("database.loom")
@@ -866,7 +866,7 @@ class DbConfig:
 O runtime suporta callbacks para mudanças de valores. Os watchers são invocados manualmente por `notify_watchers()` ou por integrações de hot-reload.
 
 ```python
-from nestifypy.loom import Loom
+from arkhe.loom import Loom
 
 Loom.load("app.loom")
 
@@ -974,7 +974,7 @@ Hint:
 Todos herdam de `LoomError` e podem ser capturados em conjunto:
 
 ```python
-from nestifypy.loom import LoomError
+from arkhe.loom import LoomError
 
 try:
     Loom.load("app.loom")
@@ -1024,7 +1024,7 @@ Loom.env
 ### `env`
 
 ```python
-from nestifypy.loom import env
+from arkhe.loom import env
 
 # O env global é um alias para Loom.env
 env.module.scope.key       # → LoomValue
@@ -1121,7 +1121,7 @@ O `_ScopeProxy` não herda de `ScopeObject` directamente (evitaria conflitos de 
 
 ## Comparação com dotenv
 
-| Feature | `python-dotenv` | `nestifypy.loom` |
+| Feature | `python-dotenv` | `arkhe.loom` |
 |---------|----------------|-----------------|
 | Formato | `KEY=VALUE` flat | Hierárquico, modular, tipado |
 | Tipos | Tudo string | Inferência automática |
@@ -1138,4 +1138,4 @@ O `_ScopeProxy` não herda de `ScopeObject` directamente (evitaria conflitos de 
 
 ---
 
-*`nestifypy.loom` — parte da biblioteca nestifypy. Especificação: Loom v0.1.*
+*`arkhe.loom` — parte da biblioteca arkhe. Especificação: Loom v0.1.*

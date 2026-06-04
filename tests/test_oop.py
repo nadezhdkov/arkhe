@@ -1,5 +1,5 @@
 """
-Tests for nestifypy.oop
+Tests for arkhe.oop
 
 Run with:  python -m pytest tests/test_oop.py -v
 """
@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
-from nestifypy.oop import (
+from arkhe.oop import (
     interface,
     implements,
     abstract_class,

@@ -1,5 +1,5 @@
 project:
-  name: "nestifypy"
+  name: "arkhe"
   version: "0.1.0"
   description: "Modern utility and game framework for Python"
 
@@ -10,7 +10,7 @@ build:
   backend: "uv"
 
 docker:
-  image: "nestifypy:latest"
+  image: "arkhe:latest"
 
 authors:
   - name: "rickmviana"

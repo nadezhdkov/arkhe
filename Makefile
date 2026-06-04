@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-#  nestifypy — Makefile
+#  arkhe — Makefile
 # ─────────────────────────────────────────────────────────────────────────────
 #  Targets:
 #    make test      → Run all tests with coverage
@@ -25,7 +25,7 @@ endif
 
 help: ## Show this help
 	@echo ""
-	@echo "  nestifypy — available targets"
+	@echo "  arkhe — available targets"
 	@echo "  ─────────────────────────────────────────"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -88,4 +88,4 @@ check: lint test ## Lint + test
 # ── Info ─────────────────────────────────────────────────────────────────────
 
 version: ## Show current package version
-	@python -c "from src.nestifypy.version import __version__; print(__version__)"
+	@python -c "from src.arkhe.version import __version__; print(__version__)"

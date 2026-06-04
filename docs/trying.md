@@ -1,4 +1,4 @@
-# Try (`nestifypy.trying`)
+# Try (`arkhe.trying`)
 
 > Tratamento funcional de erros sem `try/except` espalhados pelo código.  
 > Inspirado em Java/Kotlin `Try`, Rust `Result` e Scala `Either`.
@@ -8,7 +8,7 @@
 ## Importação
 
 ```python
-from nestifypy.trying import Try
+from arkhe.trying import Try
 ```
 
 ---
@@ -27,7 +27,7 @@ except Exception:
     print("Guest")
 ```
 
-**Depois (Nestifypy Try):**
+**Depois (Arkhe Try):**
 
 ```python
 Try.of(load_user) \
@@ -230,7 +230,7 @@ user: Optional[User] = Try.of(load_user).to_optional()
 # Lista com 0 ou 1 elemento
 items: list = Try.of(load_user).to_list()  # [user] ou []
 
-# Promise (requer nestifypy.promise)
+# Promise (requer arkhe.promise)
 promise = Try.of(load_user).to_promise()
 
 # Iteração direta (0 ou 1 iteração)
@@ -253,7 +253,7 @@ for user in Try.of(load_user):
 ## Exemplo completo
 
 ```python
-from nestifypy.trying import Try
+from arkhe.trying import Try
 
 def load_user(user_id: int):
     # simula carregamento

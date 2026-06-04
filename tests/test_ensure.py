@@ -1,7 +1,7 @@
 """
 tests/test_ensure.py
 ---------------------
-Suite de testes para nestifypy.ensure.
+Suite de testes para arkhe.ensure.
 
 Cobre:
   - exceptions  : EnsureError, EnsureValueError, EnsureTypeError
@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import pytest
 
-from nestifypy.ensure import Ensure, EnsureChain, EnsureError, EnsureValueError, EnsureTypeError
+from arkhe.ensure import Ensure, EnsureChain, EnsureError, EnsureValueError, EnsureTypeError
 
 
 # ===========================================================================

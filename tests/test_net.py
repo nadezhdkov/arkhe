@@ -1,7 +1,7 @@
 """
 tests/test_net.py
 -----------------
-Suite de testes para nestifypy.net.
+Suite de testes para arkhe.net.
 
 Cobre:
   - Response (todas as propriedades)
@@ -43,22 +43,22 @@ from typing import Any, Dict
 import pytest
 
 # ── importação do módulo ──────────────────────────────────────────────────────
-# Suporta tanto o layout de pacote (nestifypy.net) como ficheiro solto (net.py)
+# Suporta tanto o layout de pacote (arkhe.net) como ficheiro solto (net.py)
 try:
-    from nestifypy.net import (
+    from arkhe.net import (
         API,
         Request,
         Response,
         clear_cache,
         request,
     )
-    from nestifypy.net import (
+    from arkhe.net import (
         DownloadError,
         NetError,
         RequestError,
         UnexpectedStatusError,
     )
-    from nestifypy.net import TimeoutError as NetTimeoutError
+    from arkhe.net import TimeoutError as NetTimeoutError
 except ModuleNotFoundError:
     from net import (  # type: ignore[no-redef]
         API,
@@ -466,8 +466,8 @@ class TestHeaders:
     """Verifica adição e envio de headers."""
 
     def test_single_header(self, server):
-        r = request(url(server, "/headers-echo")).header("X-Custom", "nestifypy").get()
-        assert r.json["x-custom"] == "nestifypy"
+        r = request(url(server, "/headers-echo")).header("X-Custom", "arkhe").get()
+        assert r.json["x-custom"] == "arkhe"
 
     def test_multiple_headers_dict(self, server):
         r = (
@@ -992,7 +992,7 @@ class TestAsync:
 
     def test_async_get_returns_promise(self, server):
         try:
-            from nestifypy.promise import Promise
+            from arkhe.promise import Promise
         except ImportError:
             from promise import Promise  # type: ignore[import]
 
@@ -1001,7 +1001,7 @@ class TestAsync:
 
     def test_async_get_resolves_with_response(self, server):
         try:
-            from nestifypy.promise import Promise
+            from arkhe.promise import Promise
         except ImportError:
             from promise import Promise  # type: ignore[import]
 
@@ -1011,7 +1011,7 @@ class TestAsync:
 
     def test_async_get_then_callback(self, server):
         try:
-            from nestifypy.promise import Promise
+            from arkhe.promise import Promise
         except ImportError:
             from promise import Promise  # type: ignore[import]
 
@@ -1023,7 +1023,7 @@ class TestAsync:
 
     def test_async_post(self, server):
         try:
-            from nestifypy.promise import Promise
+            from arkhe.promise import Promise
         except ImportError:
             from promise import Promise  # type: ignore[import]
 
@@ -1038,7 +1038,7 @@ class TestAsync:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  TestTryIntegration — integração com nestifypy.trying
+#  TestTryIntegration — integração com arkhe.trying
 # ─────────────────────────────────────────────────────────────────────────────
 
 class TestTryIntegration:
@@ -1046,7 +1046,7 @@ class TestTryIntegration:
 
     def test_try_of_success(self, server):
         try:
-            from nestifypy.trying import Try
+            from arkhe.trying import Try
         except ImportError:
             from trying import Try  # type: ignore[import]
 
@@ -1059,7 +1059,7 @@ class TestTryIntegration:
 
     def test_try_recovers_on_unexpected_status(self, server):
         try:
-            from nestifypy.trying import Try
+            from arkhe.trying import Try
         except ImportError:
             from trying import Try  # type: ignore[import]
 
@@ -1073,7 +1073,7 @@ class TestTryIntegration:
 
     def test_try_maps_response_json(self, server):
         try:
-            from nestifypy.trying import Try
+            from arkhe.trying import Try
         except ImportError:
             from trying import Try  # type: ignore[import]
 

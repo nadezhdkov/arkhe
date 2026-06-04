@@ -1,6 +1,6 @@
-# Net (`nestifypy.net`)
+# Net (`arkhe.net`)
 
-> Cliente HTTP fluente para o ecossistema Nestifypy.  
+> Cliente HTTP fluente para o ecossistema Arkhe.  
 > Sem dependências externas — usa apenas a stdlib Python (`urllib`).
 
 ---
@@ -8,7 +8,7 @@
 ## Importação
 
 ```python
-from nestifypy.net import request, API
+from arkhe.net import request, API
 ```
 
 ---
@@ -29,7 +29,7 @@ with urllib.request.urlopen(req, timeout=5) as r:
 print(data)
 ```
 
-**Depois (Nestifypy Net):**
+**Depois (Arkhe Net):**
 
 ```python
 r = (
@@ -148,7 +148,7 @@ request(url).cache(minutes=5).get()
 request(url).cache(minutes=60, persistent=True).get()
 
 # Limpar toda a cache
-from nestifypy.net import clear_cache
+from arkhe.net import clear_cache
 clear_cache()
 ```
 
@@ -238,7 +238,7 @@ if r.success:
 ## Async (integração Promise)
 
 ```python
-from nestifypy.net import request
+from arkhe.net import request
 
 # Retorna Promise[Response]
 request(url).async_get() \
@@ -257,8 +257,8 @@ request(url).async_patch()
 ## Integração com Try
 
 ```python
-from nestifypy.trying import Try
-from nestifypy.net import request, UnexpectedStatusError
+from arkhe.trying import Try
+from arkhe.net import request, UnexpectedStatusError
 
 user = (
     Try.of(lambda: request(url).expect(200).get())
@@ -273,8 +273,8 @@ user = (
 ## Integração com Scheduler
 
 ```python
-from nestifypy.scheduler import Scheduler
-from nestifypy.net import request
+from arkhe.scheduler import Scheduler
+from arkhe.net import request
 
 Scheduler.every(5).minutes(
     lambda: request("https://api.example.com/health").get()
@@ -288,7 +288,7 @@ Scheduler.every(5).minutes(
 Para comunicar repetidamente com a mesma base URL:
 
 ```python
-from nestifypy.net import API
+from arkhe.net import API
 
 api = (
     API("https://api.github.com")
@@ -308,7 +308,7 @@ api.post("/repos", json={"name": "my-new-repo", "private": False})
 
 # Acesso ao builder completo (para opções avançadas)
 api.request("/search/repositories") \
-   .param("q", "nestifypy") \
+   .param("q", "arkhe") \
    .param("sort", "stars") \
    .expect(200) \
    .get()
@@ -319,7 +319,7 @@ api.request("/search/repositories") \
 ## Exemplo completo
 
 ```python
-from nestifypy.net import request, API, UnexpectedStatusError
+from arkhe.net import request, API, UnexpectedStatusError
 
 def log_error(ex):
     print(f"[ERROR] {type(ex).__name__}: {ex}")

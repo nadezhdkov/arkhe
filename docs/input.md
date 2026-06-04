@@ -1,4 +1,4 @@
-# nestifypy.input
+# arkhe.input
 
 Um substituto moderno, type-safe e fluente para o `input()` nativo do Python.
 
@@ -38,23 +38,23 @@ Zero dependências externas. Requer Python 3.10+.
 
 ## Instalação
 
-O módulo faz parte do core do nestifypy. Nenhuma dependência adicional é necessária.
+O módulo faz parte do core do arkhe. Nenhuma dependência adicional é necessária.
 
 ```python
-from nestifypy.input import ask
+from arkhe.input import ask
 ```
 
 Para os prompts interativos com cursor (arrow keys):
 
 ```python
-from nestifypy.input.interactive import select, multiselect, confirm
+from arkhe.input.interactive import select, multiselect, confirm
 ```
 
 ---
 
 ## Visão geral
 
-O `input()` nativo do Python devolve sempre uma `str` crua, sem validação, sem conversão de tipo, sem retry e sem qualquer proteção contra entradas maliciosas. O `nestifypy.input` resolve todos esses problemas com uma API fluente e composável.
+O `input()` nativo do Python devolve sempre uma `str` crua, sem validação, sem conversão de tipo, sem retry e sem qualquer proteção contra entradas maliciosas. O `arkhe.input` resolve todos esses problemas com uma API fluente e composável.
 
 ```python
 # Antes — Python puro
@@ -67,7 +67,7 @@ while True:
     except ValueError:
         print("Invalid port.")
 
-# Depois — nestifypy.input
+# Depois — arkhe.input
 port = ask("Port?").validate(Validator.range(1, 65535)).retry(3).int
 ```
 
@@ -80,7 +80,7 @@ port = ask("Port?").validate(Validator.range(1, 65535)).retry(3).int
 A única função que precisa de importar para a maior parte dos casos. Devolve um `InputBuilder` que pode ser configurado com métodos encadeados e finalizado com uma propriedade de tipo ou método de conversão.
 
 ```python
-from nestifypy.input import ask
+from arkhe.input import ask
 
 name   = ask("Your name?").str
 age    = ask("Your age?").int
@@ -164,7 +164,7 @@ token = ask("API Token?").required("Token is required.").retry(3).str
 Associa um ou mais validators. Um validator é um callable `(str) -> str | None`: devolve `None` em caso de sucesso ou uma mensagem de erro em caso de falha. Todos os validators são executados e os erros são apresentados ao utilizador.
 
 ```python
-from nestifypy.input.validators import Validator
+from arkhe.input.validators import Validator
 
 port = ask("Port?").validate(Validator.range(1, 65535)).int
 
@@ -262,7 +262,7 @@ pwd = ask("Password?").secret.confirm().validate(Validator.min_length(8)).str
 Todos os accessors de conversão (`.int`, `.float`, `.bool`, etc.) lançam `InputConversionError` (subclasse de `InputValidationError`) em caso de falha, pelo que todos os erros de input podem ser capturados com um único `except InputValidationError`.
 
 ```python
-from nestifypy.input.types import InputResult
+from arkhe.input.types import InputResult
 
 result = InputResult("42", prompt="Age?")
 
@@ -293,7 +293,7 @@ repr(result)        # "InputResult('42')"
 `Validator` é um namespace de validators prontos a usar e combinadores. Todos os validators seguem a assinatura `(str) -> str | None`: devolvem `None` em caso de sucesso ou uma mensagem de erro.
 
 ```python
-from nestifypy.input.validators import Validator
+from arkhe.input.validators import Validator
 ```
 
 ### Primitivos
@@ -400,7 +400,7 @@ ask("Password?").secret.validate(strong_password).retry(3).str
 Prompts com navegação por teclado para terminais ANSI (macOS, Linux, Windows 10+). Em ambientes não-TTY (CI, pipes, redirecionamento) fazem fallback automático para prompts de texto simples.
 
 ```python
-from nestifypy.input.interactive import select, multiselect, confirm, table_input, progress_input
+from arkhe.input.interactive import select, multiselect, confirm, table_input, progress_input
 ```
 
 ### select()
@@ -569,8 +569,8 @@ answer = progress_input(
 Define um formulário como uma classe com campos declarados, e colecta todos os valores numa única chamada.
 
 ```python
-from nestifypy.input.form import Form, field
-from nestifypy.input.validators import Validator
+from arkhe.input.form import Form, field
+from arkhe.input.validators import Validator
 ```
 
 ### Definição de campos com `field()`
@@ -655,12 +655,12 @@ class AppConfig(BaseConfig):
 Integração com readline para recordar inputs anteriores com as teclas `↑↓`, tal como numa shell.
 
 ```python
-from nestifypy.input.history import InputHistory
+from arkhe.input.history import InputHistory
 ```
 
 ```python
 InputHistory(
-    path: str | Path = "~/.nestifypy_input_history",
+    path: str | Path = "~/.arkhe_input_history",
     max_entries: int = 500,
 )
 ```
@@ -703,7 +703,7 @@ entries = history.entries  # list[str] com todas as entradas actuais
 Funções puras para limpar, normalizar e proteger strings antes de as usar em queries, nomes de ficheiro ou interfaces.
 
 ```python
-from nestifypy.input.sanitize import (
+from arkhe.input.sanitize import (
     sanitize,           # all-in-one
     strip_tags,
     strip_script,
@@ -850,7 +850,7 @@ InputError
 ```
 
 ```python
-from nestifypy.input.exceptions import (
+from arkhe.input.exceptions import (
     InputError,
     InputValidationError,
     InputConversionError,
@@ -901,8 +901,8 @@ Lançada quando `.timeout(n)` expira. Apenas em Unix. Atributos:
 ### Padrão base
 
 ```python
-from nestifypy.input import ask
-from nestifypy.input.exceptions import InputValidationError, InputCancelledError
+from arkhe.input import ask
+from arkhe.input.exceptions import InputValidationError, InputCancelledError
 
 try:
     port = ask("Port?").validate(Validator.range(1, 65535)).retry(3).int
@@ -917,7 +917,7 @@ except InputValidationError as e:
 ### Com timeout
 
 ```python
-from nestifypy.input.exceptions import InputTimeoutError
+from arkhe.input.exceptions import InputTimeoutError
 
 try:
     answer = ask("Proceed?").timeout(30).bool
@@ -931,7 +931,7 @@ except InputCancelledError:
 ### Distinção entre conversão e validação
 
 ```python
-from nestifypy.input.exceptions import InputConversionError
+from arkhe.input.exceptions import InputConversionError
 
 try:
     value = ask("Number?").int
@@ -956,7 +956,7 @@ except InputCancelledError:
 ### Sanitização após colecta
 
 ```python
-from nestifypy.input.sanitize import sanitize, mask
+from arkhe.input.sanitize import sanitize, mask
 
 raw_bio = ask("Bio?").required().str
 safe_bio = sanitize(raw_bio, max_length=500)

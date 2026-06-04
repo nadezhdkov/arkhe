@@ -1,4 +1,4 @@
-# `nestifypy.json` — JSON Engine
+# `arkhe.json` — JSON Engine
 
 A complete JSON engine for NestifyPy. Far beyond a thin `json.loads` wrapper — it provides typed class mapping (Gson / Jackson–style), atomic file writes, schema validation with value constraints, JSON Lines streaming, deep dict utilities, and automatic handling of Python types the stdlib encoder rejects.
 
@@ -42,10 +42,10 @@ A complete JSON engine for NestifyPy. Far beyond a thin `json.loads` wrapper —
 
 ```python
 # Everything you need from one import
-from nestifypy.json import Json
+from arkhe.json import Json
 
 # Decorator system
-from nestifypy.json import (
+from arkhe.json import (
     json_serializable,
     json_field,
     json_exclude,
@@ -56,13 +56,13 @@ from nestifypy.json import (
 )
 
 # Validation
-from nestifypy.json import FieldConstraint
+from arkhe.json import FieldConstraint
 
 # Standalone utilities (also available as Json.*)
-from nestifypy.json import deep_merge, flatten, unflatten, diff, patch, pick, omit
+from arkhe.json import deep_merge, flatten, unflatten, diff, patch, pick, omit
 
 # Exceptions
-from nestifypy.json import JsonParseError, JsonValidationError, JsonMappingError
+from arkhe.json import JsonParseError, JsonValidationError, JsonMappingError
 ```
 
 ---
@@ -70,7 +70,7 @@ from nestifypy.json import JsonParseError, JsonValidationError, JsonMappingError
 ## Package Layout
 
 ```
-nestifypy/json/
+arkhe/json/
 ├── __init__.py      ← public API surface
 ├── engine.py        ← Json  (single orchestrator class)
 ├── decorators.py    ← @json_serializable, json_field, …
@@ -87,7 +87,7 @@ nestifypy/json/
 ## Quick Start
 
 ```python
-from nestifypy.json import Json, json_serializable, json_field, FieldConstraint
+from arkhe.json import Json, json_serializable, json_field, FieldConstraint
 from typing import Annotated, List, Optional
 
 # ── 1. Raw read / write ───────────────────────────────────────────────
@@ -134,7 +134,7 @@ The decorator system enables Gson / Jackson–style typed (de)serialisation. Onc
 Marks a class for automatic JSON (de)serialisation. Works with plain classes, dataclasses, and classes with custom `__init__`.
 
 ```python
-from nestifypy.json import json_serializable
+from arkhe.json import json_serializable
 
 @json_serializable
 class User:
@@ -157,7 +157,7 @@ What it does internally:
 Configure a field's mapping behaviour. Assigned as a default value.
 
 ```python
-from nestifypy.json import json_serializable, json_field
+from arkhe.json import json_serializable, json_field
 
 @json_serializable
 class Product:
@@ -194,7 +194,7 @@ class Config:
 Class-level decorator that excludes a field without modifying the attribute definition. Useful when you can't add `json_field(exclude=True)` inline (e.g. inherited or third-party attributes).
 
 ```python
-from nestifypy.json import json_serializable, json_exclude
+from arkhe.json import json_serializable, json_exclude
 
 @json_serializable
 @json_exclude("_cache")
@@ -212,7 +212,7 @@ class Model:
 Shorthand to map a field to a different JSON key, without the full `json_field(...)` syntax.
 
 ```python
-from nestifypy.json import json_serializable, json_alias
+from arkhe.json import json_serializable, json_alias
 
 @json_serializable
 class Event:
@@ -227,7 +227,7 @@ class Event:
 Attach a validation method to a specific field. Called after `from_dict` assigns the value. Raise any exception to signal failure — it is caught and reported as a `JsonValidationError`.
 
 ```python
-from nestifypy.json import json_serializable, json_field, json_validator
+from arkhe.json import json_serializable, json_field, json_validator
 
 @json_serializable
 class Order:
@@ -254,7 +254,7 @@ Multiple validators can be attached to the same field — they are all called in
 Mark a method to be called after `from_dict` finishes mapping all fields. Use for derived-field computation, normalisation, or cross-field validation.
 
 ```python
-from nestifypy.json import json_serializable, json_field, json_post_load
+from arkhe.json import json_serializable, json_field, json_post_load
 
 @json_serializable
 class User:
@@ -281,7 +281,7 @@ Multiple `@json_post_load` methods are all called, in definition order.
 Mark a method to be called before `to_dict` serialises the object. The method may mutate the instance in-place.
 
 ```python
-from nestifypy.json import json_serializable, json_pre_dump
+from arkhe.json import json_serializable, json_pre_dump
 from datetime import datetime, timezone
 
 @json_serializable
@@ -372,7 +372,7 @@ print(admin.to_dict())  # {"id": 1, "name": "Root", "role": "admin"}
 ## `Json` — Core Engine
 
 ```python
-from nestifypy.json import Json
+from arkhe.json import Json
 ```
 
 The single orchestrator. Every operation in the package is accessible through `Json`.
@@ -566,7 +566,7 @@ Json.write_jsonl("events.jsonl", new_events, append=True)
 
 ### Dict Utilities
 
-All utilities are also importable as standalone functions from `nestifypy.json`.
+All utilities are also importable as standalone functions from `arkhe.json`.
 
 #### `Json.merge(base, override) → dict`
 
@@ -681,7 +681,7 @@ Schema values support the full Python type system:
 
 ```python
 from typing import Annotated, List, Optional
-from nestifypy.json import Json, FieldConstraint
+from arkhe.json import Json, FieldConstraint
 
 Json.validate(data, {
     # Plain types
@@ -768,7 +768,7 @@ Used with `typing.Annotated` in schemas passed to `Json.validate`.
 
 ```python
 from typing import Annotated
-from nestifypy.json import FieldConstraint
+from arkhe.json import FieldConstraint
 
 # All parameters are optional — combine freely
 Annotated[int,   FieldConstraint(min=0, max=100)]
@@ -824,7 +824,7 @@ JsonError
 ```
 
 ```python
-from nestifypy.json import JsonParseError, JsonValidationError, JsonMappingError
+from arkhe.json import JsonParseError, JsonValidationError, JsonMappingError
 
 try:
     config = Json.from_file("config.json", AppConfig)
@@ -857,7 +857,7 @@ except JsonValidationError as e:
 
 These principles are consistent across the entire package:
 
-1. **One import, full access** — `from nestifypy.json import Json` is enough for everything. Sub-modules are internal implementation details.
+1. **One import, full access** — `from arkhe.json import Json` is enough for everything. Sub-modules are internal implementation details.
 2. **Opt-in complexity** — raw `parse` / `read` / `save` work with zero setup. Typed mapping, validation, and constraints are all opt-in layers on top.
 3. **Never partially write** — `safe_save` is available for every file write. Use it for any file that matters.
 4. **Informative errors** — `JsonValidationError.errors` always includes the full dot-path to the failing field and a description of what was expected.

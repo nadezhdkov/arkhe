@@ -1,4 +1,4 @@
-# nestifypy.math
+# arkhe.math
 
 Framework matemático avançado do ecossistema NestifyPy. Unifica aritmética de precisão arbitrária, matemática simbólica, álgebra linear, geometria, estatística, conversão de unidades e moedas em uma única API consistente e fluente.
 
@@ -14,7 +14,7 @@ pip install mpmath   # Pi e sqrt de altíssima precisão
 ## Importação
 
 ```python
-from nestifypy.math import *
+from arkhe.math import *
 ```
 
 ---
@@ -180,7 +180,7 @@ Qualquer operação encadeada num `FailureResult` continua retornando o mesmo `F
 Integração com `Try`:
 
 ```python
-from nestifypy.trying import Try
+from arkhe.trying import Try
 
 result = (
     Try.of(lambda: Number("abc"))
@@ -640,7 +640,7 @@ Money.refresh_rates()
 Integração com NestifyPy Net:
 
 ```python
-from nestifypy.net import request
+from arkhe.net import request
 
 # Injeta o cliente HTTP do ecossistema
 Money.set_fetcher(request)
@@ -671,7 +671,7 @@ Number(10).divide(0).add(5).multiply(3)   # ainda FailureResult
 ### Erros disponíveis
 
 ```python
-from nestifypy.math import MathError, DivisionByZeroError, PrecisionError
+from arkhe.math import MathError, DivisionByZeroError, PrecisionError
 ```
 
 | Exceção | Quando ocorre |
@@ -683,8 +683,8 @@ from nestifypy.math import MathError, DivisionByZeroError, PrecisionError
 ### Integração com `Try`
 
 ```python
-from nestifypy.trying import Try
-from nestifypy.math import Number
+from arkhe.trying import Try
+from arkhe.math import Number
 
 result = (
     Try.of(lambda: Number(user_input))

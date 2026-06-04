@@ -1,13 +1,13 @@
-from nestifypy.pyunix.app import Game
-from nestifypy.pyunix.sprite import Entity, Sprite, SpriteGroup
-from nestifypy.pyunix.physics import Rigidbody, BoxCollider, BodyType, PhysicsWorld
-from nestifypy.pyunix.input import Input
-from nestifypy.pyunix.camera import Camera
-from nestifypy.pyunix.assets import Assets
-from nestifypy.pyunix.math import Vector2, Color
-from nestifypy.pyunix.timer import Timer
-from nestifypy.pyunix.audio import Audio
-from nestifypy.pyunix.save import Save
+from arkhe.pyunix.app import Game
+from arkhe.pyunix.sprite import Entity, Sprite, SpriteGroup
+from arkhe.pyunix.physics import Rigidbody, BoxCollider, BodyType, PhysicsWorld
+from arkhe.pyunix.input import Input
+from arkhe.pyunix.camera import Camera
+from arkhe.pyunix.assets import Assets
+from arkhe.pyunix.math import Vector2, Color
+from arkhe.pyunix.timer import Timer
+from arkhe.pyunix.audio import Audio
+from arkhe.pyunix.save import Save
 
 
 class Jogador(Entity):

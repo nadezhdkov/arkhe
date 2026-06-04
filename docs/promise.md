@@ -1,4 +1,4 @@
-# Promise (`nestifypy.promise`)
+# Promise (`arkhe.promise`)
 
 > Programação assíncrona sem asyncio, event loops ou futures.  
 > Inspirado em JavaScript Promises, Java CompletableFuture e C# Tasks.
@@ -8,7 +8,7 @@
 ## Importação
 
 ```python
-from nestifypy.promise import Promise
+from arkhe.promise import Promise
 ```
 
 ---
@@ -210,7 +210,7 @@ Promise.of(load_users) \
 ## Exemplo completo
 
 ```python
-from nestifypy.promise import Promise
+from arkhe.promise import Promise
 
 def sync_database():
     # simula operação real

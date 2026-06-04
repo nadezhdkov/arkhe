@@ -1,5 +1,5 @@
 import pytest
-from nestifypy.trying import Try, Success, Failure, TryError, FilterError, EmptyValueError
+from arkhe.trying import Try, Success, Failure, TryError, FilterError, EmptyValueError
 
 def test_try_success():
     result = Try.of(lambda: 42)

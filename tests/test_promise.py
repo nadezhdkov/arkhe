@@ -1,7 +1,7 @@
 import pytest
 import time
 import threading
-from nestifypy.promise import Promise, PromiseError, PromiseTimeoutError, PromiseCancelledError, PromiseAllError, PromiseAnyError
+from arkhe.promise import Promise, PromiseError, PromiseTimeoutError, PromiseCancelledError, PromiseAllError, PromiseAnyError
 
 def test_resolved_promise():
     p = Promise.resolved(42)

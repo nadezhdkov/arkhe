@@ -1,7 +1,7 @@
 """
 tests/test_loom.py
 ------------------
-Full test suite for nestifypy.loom
+Full test suite for arkhe.loom
 
 Run with:  python tests/test_loom.py
 """
@@ -17,7 +17,7 @@ import traceback
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from nestifypy.loom import (
+from arkhe.loom import (
     Loom, LoomRuntime, LoomValue, ScopeObject,
     FileProvider, SystemEnvProvider, OverrideProvider,
     LoomSyntaxError, LoomResolutionError, LoomAmbiguityError,
@@ -53,7 +53,7 @@ def loom(source: str) -> LoomRuntime:
 
 
 print("\n\033[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
-print("\033[1m  nestifypy.loom  —  test suite\033[0m")
+print("\033[1m  arkhe.loom  —  test suite\033[0m")
 print("\033[1m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n")
 
 
@@ -106,7 +106,7 @@ def _():
 def _():
     ast = parse('@module("app")\n@net { hosts: ["a", "b", "c"] }')
     prop = ast.scopes[0].properties[0]
-    from nestifypy.loom.ast_nodes import ListNode
+    from arkhe.loom.ast_nodes import ListNode
     assert isinstance(prop.value, ListNode)
     assert [i.value for i in prop.value.items] == ["a", "b", "c"]
 

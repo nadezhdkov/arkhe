@@ -1,7 +1,7 @@
 import pytest
 import os as std_os
 from pathlib import Path
-from nestifypy import os as nos
+from arkhe import os as nos
 
 def test_paths_join():
     p = nos.join("a", "b", "c")

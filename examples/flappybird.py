@@ -1,5 +1,5 @@
 """
-Flappy Bird — nestifypy.pyunix
+Flappy Bird — arkhe.pyunix
 ==============================
 Reescrito para usar o sistema pyunix corretamente:
 
@@ -26,19 +26,21 @@ import random
 
 import pygame
 
-from nestifypy.pyunix.app import Game
-from nestifypy.pyunix.assets import Assets
-from nestifypy.pyunix.camera import Camera
-from nestifypy.pyunix.events import Event
-from nestifypy.pyunix.input import Input
-from nestifypy.pyunix.math import Color, Vector2
-from nestifypy.pyunix.physics import (
+from arkhe.pyunix.app import Game
+from arkhe.pyunix.render.draw import Draw
+from arkhe.pyunix.render.canvas import Canvas
+from arkhe.pyunix.assets import Assets
+from arkhe.pyunix.camera import Camera
+from arkhe.pyunix.events import Event
+from arkhe.pyunix.input import Input
+from arkhe.pyunix.math import Color, Vector2
+from arkhe.pyunix.physics import (
     BodyType, BoxCollider, PhysicsWorld, Rigidbody,
 )
-from nestifypy.pyunix.save import Save
-from nestifypy.pyunix.sprite import Entity, Sprite, SpriteGroup
-from nestifypy.pyunix.timer import Timer
-from nestifypy.pyunix.tween import Ease, Tween
+from arkhe.pyunix.save import Save
+from arkhe.pyunix.sprite import Entity, Sprite, SpriteGroup
+from arkhe.pyunix.timer import Timer
+from arkhe.pyunix.tween import Ease, Tween
 
 # ---------------------------------------------------------------------------
 # Constantes
@@ -116,8 +118,8 @@ class Bird(Entity):
             self.rotation = min(max(vy * 0.1, -30), 90)
 
     @Sprite.draw
-    def render(self, surface) -> None:
-        self.draw_self(surface)   # câmera em (0,0) — sem offset
+    def render(self) -> None:
+        self.draw_self()   # câmera em (0,0) — sem offset
 
     @Sprite.on_collision_enter
     def on_hit(self, info) -> None:
@@ -374,68 +376,54 @@ class FlappyBirdGame:
     # ── Layers de Renderização ───────────────
 
     @Game.layer("background", order=0)
-    def draw_background(self, screen) -> None:
-        screen.blit(self._bg, (0, 0))
+    def draw_background(self) -> None:
+        Draw.image(self._bg, 0, 0)
 
     @Game.layer("pipes", order=1)
-    def draw_pipes(self, screen) -> None:
-        self._pipe_group.draw(screen)
+    def draw_pipes(self) -> None:
+        self._pipe_group.draw()
 
     @Game.layer("ground", order=2)
-    def draw_ground(self, screen) -> None:
+    def draw_ground(self) -> None:
         gx = int(self._ground_x)
-        screen.blit(self._ground, (gx,          GROUND_Y))
-        screen.blit(self._ground, (gx + SCREEN_W, GROUND_Y))
+        Draw.image(self._ground, gx, GROUND_Y)
+        Draw.image(self._ground, gx + SCREEN_W, GROUND_Y)
 
     @Game.layer("bird", order=3)
-    def draw_bird(self, screen) -> None:
-        self._bird_group.draw(screen)
+    def draw_bird(self) -> None:
+        self._bird_group.draw()
 
     @Game.layer("ui", order=4)
-    def draw_ui(self, screen) -> None:
+    def draw_ui(self) -> None:
         # Pontuação centralizada
-        font = pygame.font.SysFont(None, 56)
-        surf = font.render(str(self._score), True, (255, 255, 255))
-        screen.blit(surf, (SCREEN_W // 2 - surf.get_width() // 2, 45))
+        Draw.text(str(self._score), x=SCREEN_W // 2, y=45, size=56, color="white", anchor="midtop")
 
         # Flash branco ao pontuar
         if self._flash_alpha > 0:
-            flash = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
-            flash.fill((255, 255, 255, int(self._flash_alpha)))
-            screen.blit(flash, (0, 0))
+            Draw.rect(0, 0, SCREEN_W, SCREEN_H, color=Color(255, 255, 255, int(self._flash_alpha)))
 
         # Tela de Game Over
         if self._game_over:
-            self._draw_game_over(screen)
+            self._draw_game_over()
 
-    def _draw_game_over(self, screen) -> None:
+    def _draw_game_over(self) -> None:
         # Overlay escuro semi-transparente
-        overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 140))
-        screen.blit(overlay, (0, 0))
-
-        font_big  = pygame.font.SysFont(None, 58)
-        font_mid  = pygame.font.SysFont(None, 34)
-        font_sml  = pygame.font.SysFont(None, 26)
+        Draw.rect(0, 0, SCREEN_W, SCREEN_H, color=Color(0, 0, 0, 140))
 
         cx = SCREEN_W // 2
 
         # "GAME OVER"
-        go = font_big.render("GAME OVER", True, (255, 80, 80))
-        screen.blit(go, (cx - go.get_width() // 2, 190))
+        Draw.text("GAME OVER", x=cx, y=190, size=58, color=Color(255, 80, 80), anchor="center")
 
         # Pontuação atual
-        sc = font_mid.render(f"Pontuação: {self._score}", True, (255, 255, 255))
-        screen.blit(sc, (cx - sc.get_width() // 2, 265))
+        Draw.text(f"Pontuação: {self._score}", x=cx, y=265, size=34, color="white", anchor="center")
 
         # Recorde
         record = Save.get("record")
-        rc = font_mid.render(f"Recorde:    {record}", True, (255, 220, 60))
-        screen.blit(rc, (cx - rc.get_width() // 2, 305))
+        Draw.text(f"Recorde:    {record}", x=cx, y=305, size=34, color=Color(255, 220, 60), anchor="center")
 
         # Instrução de restart
-        hint = font_sml.render("SPACE ou ↑ para jogar de novo", True, (200, 200, 200))
-        screen.blit(hint, (cx - hint.get_width() // 2, 360))
+        Draw.text("SPACE ou ↑ para jogar de novo", x=cx, y=360, size=26, color=Color(200, 200, 200), anchor="center")
 
     # ── HUD de recorde via @Game.text ────────
     # (renderizado automaticamente pelo engine sobre todas as layers)

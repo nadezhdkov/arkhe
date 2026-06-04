@@ -20,7 +20,7 @@ A minimal platformer demonstrating the key pyunix v2 features:
 Run with:  python example_platformer.py
 """
 
-from nestifypy.pyunix import (
+from arkhe.pyunix import (
     Game, Window, Input, Assets, Audio,
     Entity, Sprite, SpriteGroup,
     Animator,
