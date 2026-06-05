@@ -165,7 +165,6 @@ class _DiskCache:
 
     def __init__(self, directory: Union[str, Path] = ".arkhe/cache") -> None:
         self._dir = Path(directory)
-        self._dir.mkdir(parents=True, exist_ok=True)
 
     def _path(self, key: str) -> Path:
         h = hashlib.sha256(key.encode()).hexdigest()[:16]
@@ -188,6 +187,7 @@ class _DiskCache:
             return None
 
     def set(self, key: str, data: bytes, ttl_seconds: float) -> None:
+        self._dir.mkdir(parents=True, exist_ok=True)
         p = self._path(key)
         expires_ms = int((time.time() + ttl_seconds) * 1000)
         try:

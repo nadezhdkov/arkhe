@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "arkhe-log"
+dynamic = ["version"]
+description = "Slogger logging framework for Arkhe."
+requires-python = ">=3.10"
+dependencies = [
+  "arkhe-core"
+]
+
+[tool.hatch.version]
+path = "../arkhe-core/src/arkhe/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/arkhe"]
+
+[tool.uv.sources]
+arkhe-core = { workspace = true }
+arkhe-meta = { workspace = true }
+arkhe-config = { workspace = true }
+arkhe-net = { workspace = true }
+arkhe-math = { workspace = true }
+arkhe-game = { workspace = true }
+arkhe-web = { workspace = true }
+arkhe-os = { workspace = true }
+arkhe-scheduler = { workspace = true }
+arkhe-db = { workspace = true }

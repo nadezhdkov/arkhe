@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "arkhe-scheduler"
+dynamic = ["version"]
+description = "Task scheduling and concurrency flow for Arkhe."
+requires-python = ">=3.10"
+dependencies = [
+  "arkhe-core",
+  "arkhe-log"
+]
+
+[tool.hatch.version]
+path = "../arkhe-core/src/arkhe/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/arkhe"]
+
+[tool.uv.sources]
+arkhe-core = { workspace = true }
+arkhe-meta = { workspace = true }
+arkhe-config = { workspace = true }
+arkhe-net = { workspace = true }
+arkhe-math = { workspace = true }
+arkhe-game = { workspace = true }
+arkhe-web = { workspace = true }
+arkhe-os = { workspace = true }
+arkhe-log = { workspace = true }
+arkhe-db = { workspace = true }

@@ -22,51 +22,49 @@ Every module is **independent and composable** — use exactly what you need.
 
 ## 📦 Installation
 
-**Core framework** (no game engine dependencies):
+Arkhe is distributed as a set of independent, modular **Namespace Packages**. Install exactly what you need.
+
+**Core & Metaprogramming:**
 ```bash
-pip install arkhe
+pip install arkhe-core arkhe-meta
 ```
 
-**Full framework** (includes Pyunix game engine):
+**Web, Net & Config:**
 ```bash
-pip install "arkhe[game]"
+pip install arkhe-web arkhe-net arkhe-config
 ```
 
-**Ignite enterprise framework** (DI, web, scheduler, JWT):
+**Game Engine & Math:**
 ```bash
-pip install arkhe-ignite[all]
+pip install arkhe-game arkhe-math
 ```
 
-> Requires **Python 3.10 or higher**. No mandatory third-party dependencies for the core modules.
+**Enterprise Utilities:**
+```bash
+pip install arkhe-db arkhe-scheduler arkhe-log arkhe-os
+```
+
+> Requires **Python 3.10 or higher**. Combine packages freely — they all seamlessly integrate into the `arkhe.*` namespace.
 
 ---
 
 ## 🌐 Ecosystem
 
-> Each package is independent. Combine freely.
+> Each package is independent. Install only what you need — they all share the `arkhe.*` namespace.
 
-| Package | Description |
-|---|---|
-| [**Ignite**](#-ignite--enterprise-application-framework) | Spring Boot-inspired DI container, EventBus, FastAPI integration, cron jobs, JWT |
-| [**Komodo**](#-komodo--metaprogramming) | Lombok-style AST metaprogramming — zero runtime overhead |
-| [**Database**](#-database--sqlite-toolkit) | Fluent, lightweight SQLite query builder with entity mapping |
-| [**OOP**](#-oop--object-oriented-utilities) | Interfaces, abstract classes, `@override`, `@final` — fail-fast validation |
-| [**Pyunix**](#-pyunix--2d-game-engine) | Declarative 2D game engine built on Pygame |
-| [**YAML**](#-yaml--intelligent-config-registry) | O(1) intelligent YAML registry with hot-reload |
-| [**Env**](#-env--environment-management) | Typed, chainable `.env` variable management |
-| [**Loom**](#-loom--configuration-engine) | Hierarchical typed config format (`.loom` files) |
-| [**Net**](#-net--http-client) | Fluent HTTP client — zero external dependencies |
-| [**Collections**](#-collections) | Java-inspired strongly-typed data structures and Stream pipeline |
-| [**Promise**](#-promise) | Asynchronous execution without asyncio or event loops |
-| [**Trying**](#-trying) | Functional error handling — Try monad |
-| [**Scheduler**](#-scheduler) | Fluent cron-style task scheduler, thread-safe |
-| [**Flow**](#-flow--control-flow) | Throttling, debouncing, intervals, parallel execution |
-| [**Input**](#-input) | Interactive CLI inputs, forms, and validation |
-| [**Decorators**](#-decorators) | Caching, retries, type validation, event bus and more |
-| [**SLogger**](#-slogger--system-logger) | Professional logger with colours, formatters, and decorators |
-| [**Console**](#-console--terminal-utilities) | Rich terminal output — tables, spinners, prompts, progress bars |
-| [**Math**](#-math) | Game-ready math primitives — vectors, matrices, easing |
-| [**OS**](#-os--file-utilities) | Fluent file and directory interaction helpers |
+| Package (`pip install`) | Modules | Description |
+|---|---|---|
+| **`arkhe-core`** | `types`, `utils`, `ensure`, `result`, `promise`, `trying` | Foundation types, functional error handling, utilities |
+| **`arkhe-meta`** | [`komodo`](#-komodo--metaprogramming), [`oop`](#-oop--object-oriented-utilities), `decorators`, `patterns` | AST metaprogramming, interfaces, abstract classes |
+| **`arkhe-config`** | [`yaml`](#-yaml--intelligent-config-registry), `json`, [`env`](#-env--environment-management) | Configuration management (YAML, JSON, dotenv) |
+| **`arkhe-web`** | [`ignite`](#-ignite--enterprise-application-framework), [`loom`](#-loom--configuration-engine) | Enterprise DI framework, FastAPI integration, config engine |
+| **`arkhe-net`** | [`net`](#-net--http-client) | Fluent HTTP client — zero external dependencies |
+| **`arkhe-math`** | [`math`](#-math) | BigDecimal, Money, game-ready math primitives |
+| **`arkhe-game`** | [`pyunix`](#-pyunix--2d-game-engine) | Declarative 2D game engine built on Pygame |
+| **`arkhe-db`** | [`database`](#-database--sqlite-toolkit), [`collections`](#-collections) | SQLite toolkit, strongly-typed data structures |
+| **`arkhe-scheduler`** | [`scheduler`](#-scheduler), [`flow`](#-flow--control-flow) | Cron-style task scheduler, throttling, debouncing |
+| **`arkhe-log`** | [`slogger`](#-slogger--system-logger) | Professional logger with colours and formatters |
+| **`arkhe-os`** | [`os`](#-os--file-utilities), [`console`](#-console--terminal-utilities), [`input`](#-input), `cli` | File utilities, terminal UI, interactive CLI inputs |
 
 ---
 
@@ -1217,6 +1215,12 @@ Generated structure includes pre-configured support for `ruff`, `pytest`, and `m
 
 ## 📝 Changelog
 
+### v0.3.0 — Workspace Architecture
+- **Breaking:** Migrated from monolithic `pip install arkhe` to **11 independent Namespace Packages** (`arkhe-core`, `arkhe-meta`, `arkhe-net`, etc.).
+- **Tooling:** Adopted `uv` workspaces for monorepo management and `hatchling` as the modern build backend.
+- **Architecture:** Each package has its own `pyproject.toml` with explicit dependencies — no more accidental cross-module coupling.
+- **Compatibility:** All existing `arkhe.*` imports continue to work unchanged thanks to Python Namespace Packages.
+
 ### v0.2.3
 - **Database:** Added `arkhe.database` — fluent SQLite toolkit with entity mapping, transactions, and `DBResult` safe execution.
 - **OOP:** Added `arkhe.oop` — interfaces, abstract classes, `@override`, and `@final` with fail-fast validation at class definition time.
@@ -1269,14 +1273,39 @@ Full documentation is available in the `docs/` directory:
 
 ---
 
+## 🏗 Project Structure
+
+Arkhe uses a **monorepo** managed by [`uv`](https://docs.astral.sh/uv/) workspaces:
+
+```text
+arkhe/
+├── pyproject.toml          # Workspace root
+├── packages/
+│   ├── arkhe-core/         # Foundation types & utilities
+│   ├── arkhe-meta/         # Komodo, OOP, decorators
+│   ├── arkhe-config/       # YAML, JSON, Env
+│   ├── arkhe-web/          # Ignite, Loom
+│   ├── arkhe-net/          # HTTP client
+│   ├── arkhe-math/         # BigDecimal, Money
+│   ├── arkhe-game/         # Pyunix game engine
+│   ├── arkhe-db/           # Database, Collections
+│   ├── arkhe-scheduler/    # Scheduler, Flow
+│   ├── arkhe-log/          # SLogger
+│   └── arkhe-os/           # OS, Console, Input, CLI
+└── tests/
+```
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome!
 
 1. Clone the repository
-2. Install development dependencies: `uv pip install -e ".[dev]"` or `pip install -e ".[dev]"`
-3. Run tests: `pytest`
-4. Lint code: `ruff check .`
+2. Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) if you haven't already
+3. Sync the workspace: `uv sync --all-packages`
+4. Run tests: `uv run pytest`
+5. Lint code: `ruff check .`
 
 ---
 

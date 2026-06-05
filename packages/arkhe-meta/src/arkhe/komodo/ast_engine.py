@@ -19,8 +19,8 @@ def apply_generator(cls: Type, generator: Callable[[ast.ClassDef, Type], None]) 
     This mechanism allows stacking multiple komodo decorators without losing
     previous transformations or reading stale source code.
     """
-    if hasattr(cls, "__komodo_ast__"):
-        tree = getattr(cls, "__komodo_ast__")
+    if "__komodo_ast__" in cls.__dict__:
+        tree = cls.__dict__["__komodo_ast__"]
         class_def = next(
             (node for node in tree.body if isinstance(node, ast.ClassDef)), None
         )
@@ -117,6 +117,24 @@ def apply_generator(cls: Type, generator: Callable[[ast.ClassDef, Type], None]) 
     # inspect.getsource() or reference the class by name.
     if module:
         module.__dict__[cls.__name__] = new_cls
+
+    # FIX 4: Re-apply special arkhe.oop attributes that the AST recompilation
+    # would otherwise silently discard.  This preserves contracts installed by
+    # @abstract_class, @final, etc. so that stacking komodo + oop decorators
+    # continues to enforce instantiation guards and abstract-method checks.
+    _OOP_ATTRS = (
+        "__new__",
+        "__init_subclass__",
+        "__is_abstract__",
+        "__is_final__",
+    )
+    for _attr in _OOP_ATTRS:
+        original_val = cls.__dict__.get(_attr)
+        if original_val is not None:
+            try:
+                setattr(new_cls, _attr, original_val)
+            except (AttributeError, TypeError):
+                pass
 
     # Carry over the AST for the next decorator
     setattr(new_cls, "__komodo_ast__", tree)

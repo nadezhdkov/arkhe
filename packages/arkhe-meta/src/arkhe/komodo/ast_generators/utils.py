@@ -48,6 +48,33 @@ def add_method(class_def: ast.ClassDef, method_def: ast.FunctionDef):
     if not has_method(class_def, method_def.name):
         class_def.body.append(method_def)
 
+def get_inherited_fields(cls: Type) -> Dict[str, Any]:
+    """
+    Returns annotated fields from ancestor classes (excluding `cls` itself and
+    `object`), collected in MRO order (closest ancestor first).
+
+    Only public fields (not starting with ``_``) are included.  The returned
+    dict is ordered: fields from higher-up ancestors come first so that the
+    generated ``__init__`` signature matches the natural top-down declaration
+    order.
+    """
+    # Collect per-class annotations in reverse MRO (top → bottom, excluding
+    # `cls` itself and `object`) then reverse so that the closest ancestor
+    # wins on duplicates.
+    ancestor_chain = [
+        klass
+        for klass in reversed(cls.__mro__)
+        if klass is not cls and klass is not object
+    ]
+
+    inherited: Dict[str, Any] = {}
+    for klass in ancestor_chain:
+        for name, annotation in getattr(klass, "__annotations__", {}).items():
+            if not name.startswith("_"):
+                inherited[name] = annotation
+    return inherited
+
+
 def get_komodo_meta(cls: Type) -> set:
     return getattr(cls, "__komodo_meta__", set())
 

@@ -376,3 +376,71 @@ class TestCombined:
         svc = UserService()
         assert svc.startup() == "started"
         assert svc.execute() == "executing"
+
+    def test_komodo_and_oop_integration(self):
+        from arkhe.komodo.access_level import AccessLevel
+        from arkhe.komodo.core import komodo
+
+        @abstract_class
+        @komodo.all_args_constructor(access=AccessLevel.PUBLIC)
+        class People:
+            name: str
+            age: str
+
+            def birthday(self):
+                self.age = str(int(self.age) + 1)
+
+            @abstract_method
+            def study(self):
+                pass
+
+        @komodo.getter
+        @komodo.setter
+        @komodo.all_args_constructor(access=AccessLevel.PUBLIC)
+        class Student(People):
+            curse: str
+            clazz: str
+
+            def tuition(self):
+                return f'{self.name} just enrolled'
+
+            @override
+            def study(self):
+                return f'{self.name} is studying {self.curse} in class {self.clazz}'
+
+        # Test instantiation of child class
+        student = Student('Lucas', '15', 'Ensino Medio', 'Diurno')
+        
+        # Test basic komodo features (fields and constructor)
+        assert student.name == 'Lucas'
+        assert student.age == '15'
+        assert student.curse == 'Ensino Medio'
+        assert student.clazz == 'Diurno'
+
+        # Test komodo accessors for both own and inherited fields
+        assert student.get_name() == 'Lucas'
+        assert student.get_age() == '15'
+        assert student.get_curse() == 'Ensino Medio'
+        assert student.get_clazz() == 'Diurno'
+
+        # Test setters
+        student.set_name('Pedro')
+        assert student.get_name() == 'Pedro'
+
+        # Test oop methods
+        assert student.tuition() == 'Pedro just enrolled'
+        assert student.study() == 'Pedro is studying Ensino Medio in class Diurno'
+
+        # Test oop inherited method
+        student.birthday()
+        assert student.get_age() == '16'
+
+        # Test oop abstract class instantiation block
+        with pytest.raises(InstantiationError):
+            People('João', '20')
+
+        # Test oop missing abstract method implementation block
+        with pytest.raises(AbstractMethodError):
+            @komodo.all_args_constructor(access=AccessLevel.PUBLIC)
+            class BadStudent(People):
+                grade: str
