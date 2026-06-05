@@ -7,10 +7,10 @@ AST generators for validation.
 import ast
 from typing import Type
 from arkhe.komodo.ast_builders import make_if, make_raise, make_call
-from arkhe.komodo.ast_generators.utils import get_fields_from_ast, mark_komodo_meta
+from arkhe.komodo.ast_generators.utils import get_all_fields_from_ast, mark_komodo_meta
 
 def generate_non_null(class_def: ast.ClassDef, cls: Type):
-    fields = get_fields_from_ast(class_def)
+    fields = get_all_fields_from_ast(class_def, cls)
     
     init_func = next((n for n in class_def.body if isinstance(n, ast.FunctionDef) and n.name == "__init__"), None)
     if not init_func:
@@ -30,7 +30,7 @@ def generate_non_null(class_def: ast.ClassDef, cls: Type):
     mark_komodo_meta(cls, "non_null")
 
 def generate_validated(class_def: ast.ClassDef, cls: Type):
-    fields = get_fields_from_ast(class_def)
+    fields = get_all_fields_from_ast(class_def, cls)
     
     init_func = next((n for n in class_def.body if isinstance(n, ast.FunctionDef) and n.name == "__init__"), None)
     if not init_func:

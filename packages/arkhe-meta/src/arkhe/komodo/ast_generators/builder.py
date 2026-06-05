@@ -7,7 +7,7 @@ AST generator for @komodo.builder.
 import ast
 from typing import Type
 from arkhe.komodo.ast_builders import make_arg, make_arguments, make_function, make_return, make_if, make_raise, make_call, make_assign, make_attribute_assign
-from arkhe.komodo.ast_generators.utils import get_fields_from_ast, get_defaults_from_ast, mark_komodo_meta, get_komodo_meta
+from arkhe.komodo.ast_generators.utils import get_fields_from_ast, get_defaults_from_ast, mark_komodo_meta, get_komodo_meta, get_inherited_fields
 from arkhe.komodo.access_level import AccessLevel
 
 def generate_builder(class_def: ast.ClassDef, cls: Type, access: AccessLevel = AccessLevel.PUBLIC):
@@ -22,6 +22,33 @@ def generate_builder(class_def: ast.ClassDef, cls: Type, access: AccessLevel = A
 
     fields = get_fields_from_ast(class_def)
     defaults = get_defaults_from_ast(class_def)
+
+    inherited_fields = get_inherited_fields(cls)
+    inherited_defaults = {}
+    for name in inherited_fields:
+        if name in fields:
+            continue
+        for klass in cls.__mro__[1:]:
+            if klass is object:
+                continue
+            val = klass.__dict__.get(name)
+            if val is not None and not callable(val):
+                try:
+                    inherited_defaults[name] = ast.Constant(value=val)
+                except Exception:
+                    pass
+                break
+
+    merged_fields = {}
+    for k in inherited_fields:
+        merged_fields[k] = ast.Constant(value=None)
+    merged_fields.update(fields)
+    fields = merged_fields
+
+    merged_defaults = {}
+    merged_defaults.update(inherited_defaults)
+    merged_defaults.update(defaults)
+    defaults = merged_defaults
     
     # Read singulars from metadata if registered by @komodo.singular class decorator
     # E.g. cls.__komodo_singulars__ = ["members"]

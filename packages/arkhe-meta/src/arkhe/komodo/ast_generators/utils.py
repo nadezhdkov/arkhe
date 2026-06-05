@@ -75,6 +75,25 @@ def get_inherited_fields(cls: Type) -> Dict[str, Any]:
     return inherited
 
 
+def annotation_to_ast(annotation: Any) -> ast.expr:
+    if isinstance(annotation, ast.expr):
+        return annotation
+    if isinstance(annotation, type):
+        return ast.Name(id=annotation.__name__, ctx=ast.Load())
+    if isinstance(annotation, str):
+        return ast.Name(id=annotation, ctx=ast.Load())
+    return ast.Constant(value=None)
+
+def get_all_fields_from_ast(class_def: ast.ClassDef, cls: Type) -> Dict[str, ast.expr]:
+    own_fields = get_fields_from_ast(class_def)
+    inherited_runtime = get_inherited_fields(cls)
+    inherited_fields = {
+        name: annotation_to_ast(ann)
+        for name, ann in inherited_runtime.items()
+        if name not in own_fields
+    }
+    return {**inherited_fields, **own_fields}
+
 def get_komodo_meta(cls: Type) -> set:
     return getattr(cls, "__komodo_meta__", set())
 

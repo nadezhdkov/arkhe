@@ -7,10 +7,10 @@ AST generators for serialization (to_dict, from_dict, to_json, from_json).
 import ast
 from typing import Type
 from arkhe.komodo.ast_builders import make_arg, make_arguments, make_function, make_return, make_call
-from arkhe.komodo.ast_generators.utils import get_fields_from_ast, mark_komodo_meta
+from arkhe.komodo.ast_generators.utils import get_all_fields_from_ast, mark_komodo_meta
 
 def generate_to_dict(class_def: ast.ClassDef, cls: Type):
-    fields = get_fields_from_ast(class_def)
+    fields = get_all_fields_from_ast(class_def, cls)
     
     keys = []
     values = []

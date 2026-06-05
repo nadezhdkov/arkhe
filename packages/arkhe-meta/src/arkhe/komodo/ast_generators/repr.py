@@ -7,10 +7,10 @@ AST generator for __repr__ and __str__.
 import ast
 from typing import Type, Optional, List
 from arkhe.komodo.ast_builders import make_arg, make_arguments, make_function, make_return
-from arkhe.komodo.ast_generators.utils import get_fields_from_ast, mark_komodo_meta
+from arkhe.komodo.ast_generators.utils import get_all_fields_from_ast, mark_komodo_meta
 
 def generate_to_str(class_def: ast.ClassDef, cls: Type, onlyExplicitlyIncluded: bool = False, callSuper: bool = False, includeFieldNames: bool = True, doNotUseGetters: bool = False, exclude: Optional[List[str]] = None, of: Optional[List[str]] = None):
-    fields = get_fields_from_ast(class_def)
+    fields = get_all_fields_from_ast(class_def, cls)
     
     class_name = class_def.name
     values = [ast.Constant(value=f"{class_name}(")]

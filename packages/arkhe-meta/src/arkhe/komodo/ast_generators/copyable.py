@@ -7,10 +7,10 @@ AST generator for @komodo.copyable.
 import ast
 from typing import Type
 from arkhe.komodo.ast_builders import make_arg, make_arguments, make_function, make_return, make_call
-from arkhe.komodo.ast_generators.utils import get_fields_from_ast, mark_komodo_meta
+from arkhe.komodo.ast_generators.utils import get_all_fields_from_ast, mark_komodo_meta
 
 def generate_copyable(class_def: ast.ClassDef, cls: Type):
-    fields = get_fields_from_ast(class_def)
+    fields = get_all_fields_from_ast(class_def, cls)
     
     # copy(self)
     # import copy as copy_module; return copy_module.copy(self)

@@ -7,10 +7,10 @@ AST generator for __eq__ and __hash__.
 import ast
 from typing import Type
 from arkhe.komodo.ast_builders import make_arg, make_arguments, make_function, make_return, make_if, make_call
-from arkhe.komodo.ast_generators.utils import get_fields_from_ast, mark_komodo_meta
+from arkhe.komodo.ast_generators.utils import get_all_fields_from_ast, mark_komodo_meta
 
 def generate_eq_hash(class_def: ast.ClassDef, cls: Type):
-    fields = get_fields_from_ast(class_def)
+    fields = get_all_fields_from_ast(class_def, cls)
     field_names = list(fields.keys())
     
     # __eq__

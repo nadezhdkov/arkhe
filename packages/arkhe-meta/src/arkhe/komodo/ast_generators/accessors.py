@@ -7,18 +7,8 @@ AST generator for accessors (getter, setter, fluent).
 import ast
 from typing import Type
 from arkhe.komodo.ast_builders import make_arg, make_arguments, make_function, make_return, make_attribute_assign, make_if, make_call
-from arkhe.komodo.ast_generators.utils import get_fields_from_ast, get_inherited_fields, mark_komodo_meta
+from arkhe.komodo.ast_generators.utils import get_all_fields_from_ast, mark_komodo_meta
 from arkhe.komodo.access_level import AccessLevel
-
-def _annotation_to_ast(annotation) -> ast.expr:
-    """Convert a runtime annotation to an AST expression node."""
-    if isinstance(annotation, ast.expr):
-        return annotation
-    if isinstance(annotation, type):
-        return ast.Name(id=annotation.__name__, ctx=ast.Load())
-    if isinstance(annotation, str):
-        return ast.Name(id=annotation, ctx=ast.Load())
-    return ast.Constant(value=None)
 
 def generate_accessors(class_def: ast.ClassDef, cls: Type, fluent: bool = False, getter: bool = True, setter: bool = True, withers: bool = False, access: AccessLevel = AccessLevel.PUBLIC):
     if access == AccessLevel.NONE:
@@ -30,19 +20,7 @@ def generate_accessors(class_def: ast.ClassDef, cls: Type, fluent: bool = False,
     elif access == AccessLevel.PRIVATE:
         prefix = "__"
 
-    # Own fields (declared in this class body)
-    own_fields = get_fields_from_ast(class_def)
-
-    # Inherited fields: convert runtime annotations to AST nodes
-    inherited_runtime = get_inherited_fields(cls)
-    inherited_fields = {
-        name: _annotation_to_ast(ann)
-        for name, ann in inherited_runtime.items()
-        if name not in own_fields
-    }
-
-    # Combined: inherited first (top-down order), then own
-    fields = {**inherited_fields, **own_fields}
+    fields = get_all_fields_from_ast(class_def, cls)
 
     for name in fields:
         # Accessors operate on the public attribute (self.name), which is what
