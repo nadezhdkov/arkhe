@@ -45,6 +45,9 @@ def abstract_class(cls: type) -> type:
             def save(self, data):
                 pass
     """
+    if getattr(cls, "__is_abstract__", False):
+        return cls
+
     _ABSTRACT_CLASSES.add(cls)
 
     original_init_subclass = cls.__dict__.get("__init_subclass__")
@@ -153,7 +156,7 @@ def _validate_abstract_methods(abstract_cls: type, subclass: type) -> None:
 # @abstract_method
 # ---------------------------------------------------------------------------
 
-def abstract_method(func):
+class abstract_method:
     """
     Marks a method inside an @abstract_class as abstract.
 
@@ -165,21 +168,33 @@ def abstract_method(func):
         def save(self, data):
             pass
     """
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        raise NotImplementedError(
-            f"Abstract method '{func.__name__}' must be implemented by a subclass."
-        )
+    def __init__(self, func):
+        self.func = func
+        functools.update_wrapper(self, func)
+        self.__is_abstract_method__ = True
 
-    wrapper.__is_abstract_method__ = True
-    return wrapper
+    def __set_name__(self, owner, name):
+        if not getattr(owner, "__is_abstract__", False):
+            abstract_class(owner)
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        if hasattr(self.func, "__get__"):
+            return self.func.__get__(instance, owner)
+        return self.func
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(
+            f"Abstract method '{self.func.__name__}' must be implemented by a subclass."
+        )
 
 
 # ---------------------------------------------------------------------------
 # @override
 # ---------------------------------------------------------------------------
 
-def override(func):
+class override:
     """
     Marks a method as intentionally overriding a parent class method.
 
@@ -191,8 +206,23 @@ def override(func):
         def save(self, data):
             ...
     """
-    func.__is_override__ = True
-    return func
+    def __init__(self, func):
+        self.func = func
+        functools.update_wrapper(self, func)
+        self.__is_override__ = True
+
+    def __set_name__(self, owner, name):
+        _validate_overrides(owner.__bases__, {name: self})
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        if hasattr(self.func, "__get__"):
+            return self.func.__get__(instance, owner)
+        return self.func
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
 
 
 class _OverrideValidatingMeta(type):

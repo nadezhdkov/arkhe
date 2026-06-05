@@ -4,6 +4,7 @@ Tests for arkhe.oop
 Run with:  python -m pytest tests/test_oop.py -v
 """
 
+from asyncio import exceptions
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -302,17 +303,19 @@ class TestOverride:
             def save(self, data):
                 pass
 
-        with pytest.raises(OverrideError) as exc:
+        with pytest.raises(RuntimeError) as exc:
             class Concrete(Base):
                 @override
                 def save(self, data):
                     return data
 
                 @override
-                def delete(self):   # does NOT exist on Base
+                def delete(self):  # does NOT exist on Base
                     pass
 
-        assert "delete" in str(exc.value)
+        assert isinstance(exc.value.__cause__, OverrideError)
+        assert "delete" in str(exc.value.__cause__)
+
 
 
 # ===========================================================================
