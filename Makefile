@@ -80,18 +80,46 @@ clean: ## Remove build artifacts
 
 # ── Publish ──────────────────────────────────────────────────────────────────
 
-publish: rebuild ## Upload ALL packages to PyPI (requires PYPI_TOKEN in .env)
+publish: ## Show available publish targets
+	@echo ""
+	@echo "Available publish targets:"
+	@echo "─────────────────────────────────────────"
+	@for pkg in $(PACKAGE_NAMES); do \
+		echo " make publish-$$pkg"; \
+	done
+	@echo ""
+	@echo "Short aliases:"
+	@echo " make publish-config"
+	@echo " make publish-core"
+	@echo " make publish-db"
+	@echo " make publish-game"
+	@echo " make publish-log"
+	@echo " make publish-math"
+	@echo " make publish-meta"
+	@echo " make publish-net"
+	@echo " make publish-os"
+	@echo " make publish-scheduler"
+	@echo " make publish-web"
+	@echo ""
+	@echo "Publish everything:"
+	@echo " make publish-all"
+	@echo ""
+
+publish-all: rebuild ## Upload ALL packages to PyPI (requires PYPI_TOKEN in .env)
 ifndef PYPI_TOKEN
 	$(error PYPI_TOKEN is not set. Add it to .env: PYPI_TOKEN=pypi-xxx)
 endif
 	@for pkg in $(PACKAGES); do \
 		pkg_name=$$(basename $$pkg); \
+		pkg_name_norm=$$(echo $$pkg_name | tr '-' '_'); \
 		echo "\n\033[36m▸ Publishing $$pkg_name...\033[0m"; \
-		uv run python -m twine upload dist/$$pkg_name-* \
+		uv run python -m twine upload dist/$$pkg_name_norm-* \
 			--username __token__ \
 			--password $(PYPI_TOKEN) \
 			--non-interactive \
-			--verbose; \
+			--skip-existing; \
+		echo "\033[33mWaiting 20 seconds...\033[0m"; \
+		sleep 20; \
 	done
 	@echo "\n\033[32m✓ All packages published.\033[0m"
 
@@ -99,12 +127,50 @@ publish-%: ## Upload a single package (e.g. make publish-arkhe-meta)
 ifndef PYPI_TOKEN
 	$(error PYPI_TOKEN is not set. Add it to .env: PYPI_TOKEN=pypi-xxx)
 endif
+	@echo "\n\033[36m▸ Building $*...\033[0m"
 	uv build --package $*
-	uv run python -m twine upload dist/$*-* \
+	@pkg_name_norm=$$(echo $* | tr '-' '_'); \
+	echo "\n\033[36m▸ Publishing $*...\033[0m"; \
+	uv run python -m twine upload dist/$$pkg_name_norm-* \
 		--username __token__ \
 		--password $(PYPI_TOKEN) \
 		--non-interactive \
-		--verbose
+		--skip-existing
+
+# ── Friendly aliases ─────────────────────────────────────────────────────────
+
+publish-config:
+	@$(MAKE) publish-arkhe-config
+
+publish-core:
+	@$(MAKE) publish-arkhe-core
+
+publish-db:
+	@$(MAKE) publish-arkhe-db
+
+publish-game:
+	@$(MAKE) publish-arkhe-game
+
+publish-log:
+	@$(MAKE) publish-arkhe-log
+
+publish-math:
+	@$(MAKE) publish-arkhe-math
+
+publish-meta:
+	@$(MAKE) publish-arkhe-meta
+
+publish-net:
+	@$(MAKE) publish-arkhe-net
+
+publish-os:
+	@$(MAKE) publish-arkhe-os
+
+publish-scheduler:
+	@$(MAKE) publish-arkhe-scheduler
+
+publish-web:
+	@$(MAKE) publish-arkhe-web
 
 # ── Lint / Format ────────────────────────────────────────────────────────────
 

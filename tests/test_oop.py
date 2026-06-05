@@ -444,3 +444,59 @@ class TestCombined:
             @komodo.all_args_constructor(access=AccessLevel.PUBLIC)
             class BadStudent(People):
                 grade: str
+
+
+    def test_komodo_and_oop_integration_decorator_order_inversion(self):
+        from arkhe.komodo.access_level import AccessLevel
+        from arkhe.komodo.core import komodo
+
+        # Notice the order: @komodo is ABOVE @abstract_class.
+        # This order caused problems before the MRO-based __init_subclass__ fix
+        # because komodo recompiles the AST and creates a new class object.
+        @abstract_class
+        @komodo.all_args_constructor(access=AccessLevel.PUBLIC)
+        class PeopleInv:
+            name: str
+            age: str
+
+            def birthday(self):
+                self.age = str(int(self.age) + 1)
+
+            @abstract_method
+            def study(self):
+                pass
+
+        @komodo.getter
+        @komodo.setter
+        @komodo.all_args_constructor(access=AccessLevel.PUBLIC)
+        class StudentInv(PeopleInv):
+            curse: str
+            clazz: str
+
+            def tuition(self):
+                return f'{self.name} just enrolled'
+
+            @override
+            def study(self):
+                return f'{self.name} is studying {self.curse} in class {self.clazz}'
+
+        # Test instantiation of child class
+        student = StudentInv('Lucas', '15', 'Ensino Medio', 'Diurno')
+        
+        # Test basic komodo features
+        assert student.name == 'Lucas'
+        assert student.age == '15'
+
+        # Test oop methods
+        assert student.study() == 'Lucas is studying Ensino Medio in class Diurno'
+
+        # Test oop abstract class instantiation block
+        with pytest.raises(InstantiationError):
+            PeopleInv('João', '20')
+
+        # Test oop missing abstract method implementation block
+        with pytest.raises(AbstractMethodError):
+            @komodo.all_args_constructor(access=AccessLevel.PUBLIC)
+            class BadStudentInv(PeopleInv):
+                grade: str
+

@@ -49,12 +49,21 @@ def abstract_class(cls: type) -> type:
 
     original_init_subclass = cls.__dict__.get("__init_subclass__")
 
-    @classmethod  # type: ignore[misc]
-    def __init_subclass__(subclass, **kwargs):
+    def init_subclass_impl(subclass, **kwargs):
+        # Dynamically find the actual class in the MRO that provides this method.
+        # This handles cases where AST-based decorators (like @komodo) recompile
+        # the class and create a new class object with the same methods.
+        actual_cls = cls
+        for base in subclass.__mro__:
+            meth = base.__dict__.get("__init_subclass__")
+            if meth and getattr(meth, "__func__", meth) is init_subclass_impl:
+                actual_cls = base
+                break
+
         if original_init_subclass:
             original_init_subclass.__func__(subclass, **kwargs)
         else:
-            super(cls, subclass).__init_subclass__(**kwargs)
+            super(actual_cls, subclass).__init_subclass__(**kwargs)
 
         # Skip validation if the subclass itself is abstract.
         #
@@ -80,26 +89,34 @@ def abstract_class(cls: type) -> type:
         if _has_abstract_methods_in_body(subclass):
             return
 
-        _validate_abstract_methods(cls, subclass)
+        _validate_abstract_methods(actual_cls, subclass)
 
         # Validate @override markers
         _validate_overrides(subclass.__bases__, subclass.__dict__)
 
-    cls.__init_subclass__ = __init_subclass__
+    cls.__init_subclass__ = classmethod(init_subclass_impl)
 
     # Prevent direct instantiation
     original_new = cls.__new__
 
-    def __new__(klass, *args, **kwargs):
-        if klass is cls:
+    def new_impl(klass, *args, **kwargs):
+        # Dynamically find the actual class to handle AST recompilation
+        actual_cls = cls
+        for base in klass.__mro__:
+            meth = base.__dict__.get("__new__")
+            if meth and getattr(meth, "__func__", meth) is new_impl:
+                actual_cls = base
+                break
+
+        if klass is actual_cls:
             raise InstantiationError(
-                f"\nInstantiationError\n\nCannot instantiate abstract class {cls.__name__}"
+                f"\nInstantiationError\n\nCannot instantiate abstract class {actual_cls.__name__}"
             )
         if original_new is object.__new__:
             return object.__new__(klass)
         return original_new(klass, *args, **kwargs)
 
-    cls.__new__ = __new__
+    cls.__new__ = new_impl
     cls.__is_abstract__ = True
     return cls
 
