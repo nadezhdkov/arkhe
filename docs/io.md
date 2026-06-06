@@ -410,6 +410,260 @@ watch(player, times=20)           # run exactly 20 cycles
 
 ---
 
+## Template Engine — ATEL
+
+`arkhe.io` ships with a built-in template engine called ATEL (Arkhe Template Expression Language). It powers `printf()` and can be used standalone anywhere dynamic string rendering is needed.
+
+ATEL is reflection-based, dependency-free, and safe by default — no `eval()` or `exec()` is ever called.
+
+```python
+from arkhe.io import printf
+
+printf("{name:title} has {coins:number} coins.", player)
+# → Samuel has 15,000 coins.
+```
+
+---
+
+### printf()
+
+Renders an ATEL template against a context object and prints the result. Multi-line templates are dedented automatically.
+
+```python
+from arkhe.io import printf
+
+printf("""
+    {online?🟢 Online:🔴 Offline}
+
+    User   : {name:title}
+    Rank   : {rank -> ADMIN:'👑 Admin', MOD:'🛡 Moderator', *:'👤 User'}
+    Coins  : {coins:number}
+    Phone  : {phone:mask((##) #####-####)}
+    Status : {!banned?Allowed:Blocked}
+    City   : {address.city}
+    Nick   : {nickname ?? username ?? guest}
+""", player)
+```
+
+```
+🟢 Online
+
+User   : Samuel
+Rank   : 👑 Admin
+Coins  : 15,000
+Phone  : (88) 99999-9999
+Status : Allowed
+City   : Quixadá
+Nick   : samueldev
+```
+
+---
+
+### Expression Syntax
+
+Every expression lives between `{` and `}`. The engine resolves expressions in this priority order:
+
+```
+{ expr -> match_spec }          match expression      (highest)
+{ expr ?? fallback ?? literal } fallback chain
+{ condition ? true : false }    conditional
+{ expr : transformer|chain }    transformer           (lowest)
+```
+
+---
+
+### Attribute Resolution
+
+```python
+"{name}"                # direct attribute
+"{address.city}"        # dotted path — nested objects
+"{display_name()}"      # no-arg method call
+"{}"   "{0}"   "{1}"    # positional arguments
+```
+
+---
+
+### System Tokens
+
+Available in any template without a context object.
+
+| Token       | Value                        |
+|-------------|------------------------------|
+| `{date}`    | Current date — `YYYY-MM-DD`  |
+| `{time}`    | Current time — `HH:MM:SS`    |
+| `{now}`     | Current datetime             |
+| `{uuid}`    | Random UUID v4               |
+| `{hostname}`| Machine hostname             |
+| `{user}`    | Current OS user              |
+| `{os}`      | Operating system name        |
+| `{python}`  | Python version string        |
+
+```python
+printf("Deployed at {now} on {hostname} running Python {python}")
+# → Deployed at 2024-06-05 15:42:01 on arkhe-server running Python 3.12.3
+```
+
+---
+
+### Fallback Operator `??`
+
+Returns the first non-null, non-empty value in the chain. The last segment is always treated as a literal string fallback.
+
+```python
+"{nickname ?? Anonymous}"              # None → Anonymous
+"{nickname ?? username ?? guest}"      # chain — tries each in order
+```
+
+---
+
+### Conditional Expressions
+
+```python
+"{online?Online:Offline}"             # boolean presence
+"{coins > 1000?Rich:Poor}"            # greater than
+"{rank == 'ADMIN'?Admin:Player}"      # equality
+"{rank != 'MOD'?Player:Moderator}"    # not equal
+"{level >= 50?Veteran:Beginner}"      # greater than or equal
+"{ping < 100?Stable:Unstable}"        # less than
+"{!banned?Allowed:Blocked}"           # NOT
+```
+
+**Compound conditions:**
+
+```python
+"{online && vip?VIP Online:Offline}"
+"{admin || moderator?Staff:Player}"
+"{online && (vip || coins > 10000)?Premium:Normal}"
+```
+
+---
+
+### Match Expression
+
+Inline switch-like branching. `*` is the catch-all default.
+
+```python
+"{rank -> ADMIN:'👑 Admin', MOD:'🛡 Moderator', *:'👤 User'}"
+```
+
+---
+
+### Transformers
+
+Applied after resolution with `:`. Chain multiple with `|`.
+
+```python
+"{name:upper}"              # SAMUEL
+"{name:trim|capitalize}"    # chained — trim first, then capitalize
+"{price:decimal(2)}"        # with argument
+```
+
+**String:**
+
+| Transformer       | Example input | Result          |
+|-------------------|---------------|-----------------|
+| `upper`           | `hello`       | `HELLO`         |
+| `lower`           | `HELLO`       | `hello`         |
+| `capitalize`      | `hello world` | `Hello world`   |
+| `title`           | `hello world` | `Hello World`   |
+| `reverse`         | `hello`       | `olleh`         |
+| `trim`            | `  hi  `      | `hi`            |
+| `length`          | `hello`       | `5`             |
+| `repeat(3)`       | `ab`          | `ababab`        |
+| `substring(0,3)`  | `Samuel`      | `Sam`           |
+| `pad_left(10)`    | `hi`          | `        hi`    |
+| `pad_right(10)`   | `hi`          | `hi        `    |
+| `center(10)`      | `hi`          | `    hi    `    |
+
+**Case converters:**
+
+| Transformer     | Input           | Result          |
+|-----------------|-----------------|-----------------|
+| `camel_case`    | `hello_world`   | `helloWorld`    |
+| `pascal_case`   | `hello_world`   | `HelloWorld`    |
+| `snake_case`    | `HelloWorld`    | `hello_world`   |
+| `kebab_case`    | `HelloWorld`    | `hello-world`   |
+| `constant_case` | `HelloWorld`    | `HELLO_WORLD`   |
+
+**Normalization & filters:**
+
+| Transformer | Result                                    |
+|-------------|-------------------------------------------|
+| `normalize` | Removes accents — `João` → `Joao`        |
+| `digits`    | Keeps only digits — `+55 (88) 9` → `558` |
+| `letters`   | Keeps only letters — `abc123` → `abc`    |
+
+**Numeric:**
+
+| Transformer   | Input   | Result    |
+|---------------|---------|-----------|
+| `number`      | `15000` | `15,000`  |
+| `decimal(2)`  | `10.5`  | `10.50`   |
+| `percent`     | `0.75`  | `75%`     |
+| `currency`    | `10.5`  | `$10.50`  |
+
+**Date:**
+
+| Transformer         | Result                   |
+|---------------------|--------------------------|
+| `date`              | `2024-06-05`             |
+| `time`              | `15:42:01`               |
+| `datetime`          | `2024-06-05 15:42:01`    |
+| `date(%d/%m/%Y)`    | `05/06/2024`             |
+
+**Mask:**
+
+```python
+"{cpf:mask(###.###.###-##)}"       # 123.456.789-01
+"{phone:mask((##) #####-####)}"    # (88) 99999-9999
+```
+
+**Collection:**
+
+| Transformer  | Description                          |
+|--------------|--------------------------------------|
+| `size`       | Number of elements                   |
+| `empty`      | `"true"` or `"false"`                |
+| `first`      | First element                        |
+| `last`       | Last element                         |
+| `join(', ')` | Join with separator                  |
+
+---
+
+### Using render() directly
+
+`printf()` is a convenience wrapper. The engine is available standalone:
+
+```python
+from arkhe.io.template import render
+
+result = render("{name:title} has {coins:number} coins.", player)
+# → "Samuel has 15,000 coins."
+```
+
+---
+
+### Advanced imports
+
+The template subpackage exposes its full internal API for building on top of ATEL:
+
+```python
+from arkhe.io.template import (
+    render,                # main entry point
+    evaluate_condition,    # parse and evaluate a condition string
+    evaluate_match,        # evaluate a match spec against a value
+    apply_transformer,     # apply a single transformer
+    apply_chain,           # apply a pipe-separated transformer chain
+    resolve,               # resolve an expression (raises on failure)
+    resolve_safe,          # resolve an expression (returns default)
+    resolve_system_token,  # resolve a system token by name
+    is_system_token,       # check if a name is a system token
+    tokenize_template,     # low-level: split template into segments
+)
+```
+
+---
+
 ## Themes
 
 Arkhe ships with six built-in themes.
@@ -481,6 +735,32 @@ These functions return an `_ArkheMessage` object — they do not print on their 
 
 ---
 
+### `printf(template, context, *args)`
+
+Render an ATEL template string and print the result. Multi-line templates are dedented automatically.
+
+```python
+from arkhe.io import printf
+
+printf("{name:title} connected from {address.city}.", player)
+printf("Hello {}!", "World")
+printf("{rank -> ADMIN:'👑 Admin', *:'👤 User'}", player)
+```
+
+---
+
+### `render(template, context, *args)` — `arkhe.io.template`
+
+Render an ATEL template and return the result as a plain `str`, without printing.
+
+```python
+from arkhe.io.template import render
+
+message = render("{name} has {coins:number} coins.", player)
+```
+
+---
+
 ### `inspect_obj(obj)`
 
 Render a structured panel showing the class definition, attributes, and methods of any object or class.
@@ -537,16 +817,26 @@ print(log_separator(width=40))
 
 ```
 arkhe/io/
-├── __init__.py     Public API surface
-├── core.py         install() / uninstall() — print, input, excepthook hooks
-├── renderer.py     Layout engine — Panel, log formatter, JSON colorizer
-├── theme.py        Theme registry and active theme state
-├── helpers.py      _ArkheMessage sentinel type and factory functions
-├── inspect.py      inspect() implementation
-└── watch.py        watch() implementation — in-place terminal refresh
+├── __init__.py         Public API surface
+├── core.py             install() / uninstall() — print, input, excepthook hooks
+├── renderer.py         Layout engine — Panel, log formatter, JSON colorizer
+├── theme.py            Theme registry and active theme state
+├── helpers.py          _ArkheMessage sentinel type and factory functions
+├── inspect.py          inspect() implementation
+├── watch.py            watch() implementation — in-place terminal refresh
+├── printf.py           printf() — ATEL-powered formatted print
+└── template/
+    ├── __init__.py     Public surface for the template subpackage
+    ├── engine.py       render() — orchestrates all expression types
+    ├── parser.py       Template tokenizer — splits text and {expr} segments
+    ├── resolver.py     Attribute, path, method and positional resolution
+    ├── conditions.py   Recursive descent condition parser — no eval()
+    ├── matchers.py     Match expression evaluator
+    ├── transformers.py 30+ value transformers with chaining support
+    └── tokens.py       Built-in system tokens (date, uuid, hostname, …)
 ```
 
-`install()` is the only entry point that mutates global state (`builtins.print`, `builtins.input`, `sys.excepthook`). Everything else is pure output logic.
+`install()` is the only entry point that mutates global state (`builtins.print`, `builtins.input`, `sys.excepthook`). Everything else is pure output logic. The `template/` subpackage is entirely stateless — `render()` and all helpers are safe to call from multiple threads without synchronization.
 
 ---
 

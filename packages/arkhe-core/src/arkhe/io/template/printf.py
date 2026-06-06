@@ -19,7 +19,7 @@ import sys
 import textwrap
 from typing import Any
 
-from .template.engine import render
+from .engine import render
 
 
 def printf(template: str, context: Any = None, *args: Any, **kwargs) -> None:
